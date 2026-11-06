@@ -1,0 +1,445 @@
+<meta charset="utf-8">
+<title>Drift Tracker</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: summary tiles, one filter bar, then open deltas grouped by project; each row expands to the evidence and the suggested edit. Settings sit behind one toggle. */
+:root {
+  --bg: #f3f5f8;
+  --surface: #ffffff;
+  --sunk: #eaeef3;
+  --ink: #18212c;
+  --muted: #5c6878;
+  --line: #d9dfe7;
+  --accent: #2b59c3;
+  --high: #c0412c;
+  --medium: #c98419;
+  --low: #7a8696;
+  --good: #2b7f52;
+  --applied: #7a4fc4;
+  --font-display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141b; --surface: #161e28; --sunk: #1d2633; --ink: #e5eaf1; --muted: #95a2b3; --line: #2a3544;
+    --accent: #7fa3ff; --high: #ef6a52; --medium: #e3a748; --low: #8c98a8; --good: #53bd84; --applied: #a986e8;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141b; --surface: #161e28; --sunk: #1d2633; --ink: #e5eaf1; --muted: #95a2b3; --line: #2a3544;
+  --accent: #7fa3ff; --high: #ef6a52; --medium: #e3a748; --low: #8c98a8; --good: #53bd84; --applied: #a986e8;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 14px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 40px;
+}
+h1, h2 { font-family: var(--font-display); font-weight: 600; margin: 0; text-wrap: balance; }
+h1 { font-size: 26px; letter-spacing: -0.01em; }
+h2 { font-size: 16px; }
+.eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+input[type="text"], select, textarea { border: 1px solid var(--line); background: var(--sunk); border-radius: 5px; padding: 5px 8px; min-width: 0; }
+textarea { width: 100%; resize: vertical; font-family: var(--font-data); font-size: 12px; line-height: 1.5; }
+a { color: var(--accent); }
+
+.page { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+.top { display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: end; justify-content: space-between; }
+.top-right { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.fresh { font-family: var(--font-data); font-size: 11.5px; color: var(--muted); }
+.chip-sample { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 8px; border: 1px dashed var(--muted); color: var(--muted); border-radius: 999px; vertical-align: middle; margin-left: 8px; }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 5px 11px; font-weight: 500; }
+.btn:hover { border-color: var(--accent); }
+.btn:disabled { opacity: 0.55; cursor: progress; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.btn.tiny { padding: 2px 8px; font-size: 11.5px; border-radius: 5px; }
+.link-btn { background: none; border: 0; color: var(--muted); font-size: 12px; padding: 2px 0; text-decoration: underline; text-underline-offset: 2px; }
+.link-btn:hover { color: var(--ink); }
+
+.banner { border: 1px solid var(--line); border-left: 3px solid var(--medium); background: var(--surface); border-radius: 8px; padding: 9px 12px; display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between; }
+.banner.bad { border-left-color: var(--high); }
+.banner p { margin: 0; }
+
+.stats { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 10px; width: max-content; max-width: 100%; }
+@media (max-width: 760px) { .stats { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); width: auto; } }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; display: grid; gap: 2px; min-width: 0; }
+.stat .v { font-family: var(--font-display); font-size: 24px; font-weight: 600; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.stat .v.bad { color: var(--high); }
+.stat .s { font-size: 12px; color: var(--muted); }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: grid; gap: 10px; min-width: 0; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; flex-wrap: wrap; }
+.seg button { border: 0; background: var(--surface); padding: 4px 10px; font-size: 12.5px; color: var(--muted); }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--sunk); color: var(--ink); font-weight: 600; }
+.seg .n { font-family: var(--font-data); font-size: 11px; margin-left: 4px; }
+
+.group > .eyebrow { display: flex; gap: 6px; padding: 10px 0 4px; }
+.item { border-top: 1px solid var(--line); }
+.row { display: grid; grid-template-columns: 62px 132px minmax(0, 1fr) 84px 84px auto; gap: 10px; align-items: center; padding: 7px 0; }
+@media (max-width: 760px) {
+  .row { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "i t x" "y y y" "m a a"; row-gap: 4px; }
+  .row > .imp { grid-area: i; } .row > .txt { grid-area: t; white-space: normal; } .row > .tag { grid-area: y; justify-self: start; }
+  .row > .met { grid-area: m; } .row > .age { display: none; } .row > .acts { grid-area: a; }
+  .row > .exp { grid-area: x; }
+}
+.imp { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; padding: 1px 7px; border-radius: 999px; text-align: center; color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); }
+.tag { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.txt { font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.met, .age { font-family: var(--font-data); font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+.age.old { color: var(--high); }
+.acts { display: flex; gap: 4px; align-items: center; justify-content: flex-end; }
+.sbtn { border: 1px solid var(--line); background: var(--surface); border-radius: 5px; padding: 1px 8px; font-size: 11.5px; font-weight: 500; white-space: nowrap; }
+.sbtn.ok { color: var(--good); } .sbtn.no { color: var(--muted); }
+.sbtn:hover { border-color: var(--accent); }
+.state { font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 999px; color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); white-space: nowrap; }
+.icon-btn { border: 1px solid var(--line); background: var(--sunk); border-radius: 5px; width: 24px; height: 22px; display: inline-grid; place-items: center; padding: 0; font-size: 10px; }
+.icon-btn[aria-expanded="true"] { background: var(--surface); border-color: var(--accent); }
+
+.detail { display: grid; gap: 8px; padding: 2px 0 12px; }
+.cmp { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+@media (max-width: 760px) { .cmp { grid-template-columns: minmax(0, 1fr); } }
+.box { border: 1px solid var(--line); border-radius: 7px; padding: 8px 10px; display: grid; gap: 3px; min-width: 0; }
+.box p { margin: 0; overflow-wrap: anywhere; }
+.box.scope { background: var(--sunk); }
+.box.meet { border-left: 3px solid var(--medium); }
+.box.change { border-left: 3px solid var(--accent); }
+.q { font-size: 13px; color: var(--muted); margin: 0; }
+.links { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; align-items: center; }
+.empty { padding: 18px 0; color: var(--muted); margin: 0; }
+
+.settings { display: grid; gap: 10px; }
+.field { display: grid; gap: 3px; min-width: 0; }
+.field label { font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 0.04em; }
+.inline { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.inline input { flex: 1 1 280px; }
+.hint { color: var(--muted); font-size: 12.5px; margin: 0; }
+.toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 6px; font-weight: 500; z-index: 20; max-width: calc(100% - 32px); }
+.toast button { margin-left: 10px; background: none; border: 1px solid currentColor; color: inherit; border-radius: 4px; padding: 0 8px; font-weight: 600; }
+</style>
+
+<div class="page">
+  <header class="top">
+    <div>
+      <div class="eyebrow">Scope drift</div>
+      <h1>Drift Tracker <span class="chip-sample" id="sampleChip">Sample findings</span></h1>
+    </div>
+    <div class="top-right">
+      <span class="fresh" id="fresh" role="status"></span>
+      <button type="button" class="btn tiny" id="refreshBtn" hidden>Refresh</button>
+      <button type="button" class="btn tiny" id="settingsBtn" aria-expanded="false" aria-controls="settings">Settings</button>
+    </div>
+  </header>
+
+  <div class="banner" id="banner" hidden role="alert"><p id="bannerText"></p><span id="bannerAction"></span></div>
+
+  <section class="panel settings" id="settings" hidden aria-label="Settings">
+    <div class="field">
+      <label for="srcInput">Findings database (Notion link)</label>
+      <div class="inline">
+        <input type="text" id="srcInput" placeholder="Paste the link to your Scope drift findings database">
+        <button type="button" class="btn tiny primary" id="srcSave">Connect</button>
+      </div>
+      <span class="hint" id="srcStatus"></span>
+    </div>
+    <div class="field">
+      <label for="runPrompt">Run a check now (paste into Claude Code with the scope-drift-checker agent installed)</label>
+      <textarea id="runPrompt" rows="5" readonly></textarea>
+      <div class="inline"><button type="button" class="btn tiny" data-copy="runPrompt">Copy</button><span class="hint">For weekly checks, test this prompt once, then configure a recurring task in your host with an explicit timezone. See the repository’s agent setup guide.</span></div>
+    </div>
+  </section>
+
+  <section class="stats" id="stats" aria-label="Summary"></section>
+
+  <section class="panel" aria-label="Findings">
+    <div class="toolbar">
+      <span class="seg" role="group" aria-label="Status" id="statusSeg"></span>
+      <select id="projectSel" aria-label="Project"></select>
+      <select id="impactSel" aria-label="Impact">
+        <option value="all">Any impact</option><option value="High">High</option><option value="Medium">Medium</option><option value="Low">Low</option>
+      </select>
+    </div>
+    <div id="list"></div>
+  </section>
+</div>
+
+<script>
+// Fernpay sample workspace (fictional). Viewers point Settings at their own findings database.
+const DEFAULT_SOURCE = ""; // set from Settings: paste the link to your own findings database
+const SERVER = "Notion";
+const KEY = "drift-tracker-v1";
+const DAY = 86400000;
+const IMPACT = { High: "var(--high)", Medium: "var(--medium)", Low: "var(--low)" };
+const STATE = { Accepted: "var(--good)", Dismissed: "var(--low)", Applied: "var(--applied)" };
+const RANK = { High: 0, Medium: 1, Low: 2 };
+const STATUSES = [["open", "Open"], ["Accepted", "Accepted"], ["Applied", "Applied"], ["Dismissed", "Dismissed"], ["all", "All"]];
+
+// Shown until live findings load, or when no connector is available. Invented examples.
+const SAMPLE = [
+  { id: "s1", title: "Launch moved from 4 Mar to 18 Mar", project: "Mobile checkout", type: "Date moved", impact: "High", status: "New", scope: "Go-live 4 Mar.", meeting: "\"Store review takes two weeks, so we land on the 18th.\" (Ravi)", change: "Launch plan: go-live 18 Mar.", question: "", meetingDate: "2026-10-28", first: "2026-10-19", last: "2026-10-30" },
+  { id: "s2", title: "Guest checkout added to v1", project: "Mobile checkout", type: "Contradicts non-goal", impact: "High", status: "New", scope: "Non-goal: guest checkout.", meeting: "\"We agreed guest checkout ships in v1.\" (Lea)", change: "Remove the non-goal; add Key feature \"Guest checkout\".", question: "Does guest checkout change the fraud rules?", meetingDate: "2026-10-28", first: "2026-10-30", last: "2026-10-30" },
+  { id: "s3", title: "QA owner changed to Omar", project: "Mobile checkout", type: "Owner changed", impact: "Medium", status: "New", scope: "QA: Jun.", meeting: "\"Omar takes QA from next sprint.\" (Jun)", change: "Team: QA Omar.", question: "", meetingDate: "2026-10-21", first: "2026-10-23", last: "2026-10-30" },
+  { id: "s4", title: "Saved cards limited to three", project: "Wallet", type: "Changed", impact: "Low", status: "Accepted", scope: "Unlimited saved cards.", meeting: "\"Cap it at three for now.\" (Ana)", change: "Key feature 2: up to three saved cards.", question: "", meetingDate: "2026-10-14", first: "2026-10-16", last: "2026-10-23" }
+];
+
+let rows = SAMPLE.slice(), live = false, mcp = null, unwatch = null, source = DEFAULT_SOURCE, sourceLink = "";
+const ui = { status: "open", project: "all", impact: "all", open: null };
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const safeUrl = u => /^https:\/\//.test(u || "") ? u : "";
+const pad = n => String(n).padStart(2, "0");
+const today = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+const fromISO = s => { const [y, m, d] = String(s).slice(0, 10).split("-").map(Number); return new Date(y, m - 1, d); };
+const fmtDay = s => s ? fromISO(s).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "";
+const daysSince = s => s ? Math.max(0, Math.round((fromISO(today()) - fromISO(s)) / DAY)) : 0;
+const isOpen = r => !r.status || r.status === "New";
+
+try { const saved = JSON.parse(localStorage.getItem(KEY) || "{}"); if (saved.source) source = saved.source; if (saved.link) sourceLink = saved.link; } catch (e) {}
+function remember() { try { localStorage.setItem(KEY, JSON.stringify({ source, link: sourceLink })); } catch (e) {} }
+
+// ---------- Rendering ----------
+function renderStats() {
+  const open = rows.filter(isOpen);
+  const high = open.filter(r => r.impact === "High").length;
+  const oldest = open.reduce((m, r) => Math.max(m, daysSince(r.first)), 0);
+  const projects = new Set(open.map(r => r.project)).size;
+  const lastRun = rows.reduce((m, r) => (r.last && r.last > m ? r.last : m), "");
+  $("stats").innerHTML = `
+    <div class="stat"><span class="eyebrow">Open deltas</span><span class="v">${open.length}</span><span class="s">across ${projects} ${projects === 1 ? "project" : "projects"}</span></div>
+    <div class="stat"><span class="eyebrow">High impact</span><span class="v ${high ? "bad" : ""}">${high}</span><span class="s">dates, goals or launch scope</span></div>
+    <div class="stat"><span class="eyebrow">Oldest open</span><span class="v">${oldest}<small style="font-size:15px;color:var(--muted)"> d</small></span><span class="s">since first seen</span></div>
+    <div class="stat"><span class="eyebrow">Last check</span><span class="v">${lastRun ? esc(fmtDay(lastRun)) : "None"}</span><span class="s">latest agent run</span></div>`;
+}
+
+function renderFilters() {
+  const count = k => rows.filter(r => k === "all" || (k === "open" ? isOpen(r) : r.status === k)).length;
+  $("statusSeg").innerHTML = STATUSES.map(([k, l]) => `<button type="button" data-status="${k}" aria-pressed="${ui.status === k}">${l}<span class="n">${count(k)}</span></button>`).join("");
+  const projects = [...new Set(rows.map(r => r.project).filter(Boolean))].sort();
+  if (ui.project !== "all" && !projects.includes(ui.project)) ui.project = "all";
+  $("projectSel").innerHTML = `<option value="all">All projects</option>` + projects.map(p => `<option${p === ui.project ? " selected" : ""}>${esc(p)}</option>`).join("");
+  $("impactSel").value = ui.impact;
+}
+
+function rowHtml(r) {
+  const open = ui.open === r.id, age = daysSince(r.first);
+  const acts = isOpen(r)
+    ? `<button type="button" class="sbtn ok" data-set="Accepted" data-id="${esc(r.id)}">Accept</button><button type="button" class="sbtn no" data-set="Dismissed" data-id="${esc(r.id)}">Dismiss</button>`
+    : `<span class="state" style="--c:${STATE[r.status] || "var(--low)"}">${esc(r.status)}</span>`;
+  let detail = "";
+  if (open) {
+    const links = [
+      safeUrl(r.scopeSrc) && `<a href="${esc(r.scopeSrc)}" target="_blank" rel="noopener">Scope document</a>`,
+      safeUrl(r.meetingSrc) && `<a href="${esc(r.meetingSrc)}" target="_blank" rel="noopener">Meeting notes</a>`,
+      safeUrl(r.report) && `<a href="${esc(r.report)}" target="_blank" rel="noopener">Run report</a>`,
+      safeUrl(r.url) && `<a href="${esc(r.url)}" target="_blank" rel="noopener">Open in Notion</a>`
+    ].filter(Boolean).join("");
+    const more = isOpen(r)
+      ? `<button type="button" class="sbtn" data-set="Applied" data-id="${esc(r.id)}">Mark applied</button>`
+      : `<button type="button" class="sbtn" data-set="New" data-id="${esc(r.id)}">Reopen</button>${r.status === "Accepted" ? `<button type="button" class="sbtn" data-set="Applied" data-id="${esc(r.id)}">Mark applied</button>` : ""}`;
+    detail = `<div class="detail" id="det-${esc(r.id)}">
+      <div class="cmp">
+        <div class="box scope"><span class="eyebrow">Scope says</span><p>${esc(r.scope)}</p></div>
+        <div class="box meet"><span class="eyebrow">Meeting says${r.meetingDate ? " · " + esc(fmtDay(r.meetingDate)) : ""}</span><p>${esc(r.meeting)}</p></div>
+      </div>
+      <div class="box change"><span class="eyebrow">Suggested change</span><p>${esc(r.change)}</p></div>
+      ${r.question ? `<p class="q"><b>Question for the owner:</b> ${esc(r.question)}</p>` : ""}
+      <div class="links">${links}<span class="acts">${more}</span></div>
+      <span class="hint">${esc(r.type)} · first seen ${esc(fmtDay(r.first))}${r.last && r.last !== r.first ? ` · still there ${esc(fmtDay(r.last))}` : ""}</span>
+    </div>`;
+  }
+  return `<div class="item"><div class="row">
+      <span class="imp" style="--c:${IMPACT[r.impact] || "var(--low)"}">${esc(r.impact || "n/a")}</span>
+      <span class="tag" title="${esc(r.type)}">${esc(r.type)}</span>
+      <span class="txt" title="${esc(r.title)}">${esc(r.title)}</span>
+      <span class="met" title="Meeting date">${esc(fmtDay(r.meetingDate))}</span>
+      <span class="age${isOpen(r) && age >= 14 ? " old" : ""}" title="Days since first seen">${isOpen(r) ? age + " d open" : ""}</span>
+      <span class="acts">${acts}<button type="button" class="icon-btn exp" data-open="${esc(r.id)}" aria-expanded="${open}" aria-label="${open ? "Hide" : "Show"} evidence for ${esc(r.title)}">${open ? "▾" : "▸"}</button></span>
+    </div>${detail}</div>`;
+}
+
+function renderList() {
+  const vis = rows.filter(r =>
+    (ui.status === "all" || (ui.status === "open" ? isOpen(r) : r.status === ui.status)) &&
+    (ui.project === "all" || r.project === ui.project) &&
+    (ui.impact === "all" || r.impact === ui.impact))
+    .sort((a, b) => (RANK[a.impact] ?? 3) - (RANK[b.impact] ?? 3) || String(a.first).localeCompare(String(b.first)));
+  if (!vis.length) {
+    const none = ui.status === "open" && !rows.some(isOpen);
+    $("list").innerHTML = `<p class="empty">${none ? "No open deltas. Scope and meetings agree as of the last check." : "No findings match these filters."}</p>`;
+    return;
+  }
+  const byProject = {};
+  vis.forEach(r => (byProject[r.project || "No project"] = byProject[r.project || "No project"] || []).push(r));
+  $("list").innerHTML = Object.entries(byProject).map(([p, list]) =>
+    `<div class="group"><span class="eyebrow">${esc(p)} <span>${list.length}</span></span>${list.map(rowHtml).join("")}</div>`).join("");
+}
+
+function renderPrompt() {
+  const db = sourceLink || "the Scope drift findings database";
+  $("runPrompt").value = `Use the scope-drift-checker agent on <project>.
+Scope: <PRD page> and the Linear project "<project>".
+Meeting notes: <meeting notes page or channel>.
+Report destination: <Scope drift reports page>.
+Findings database: ${db}`;
+}
+
+function renderAll() { renderStats(); renderFilters(); renderList(); $("sampleChip").hidden = live; }
+
+// ---------- Notion ----------
+const norm = r => ({
+  id: r.url, url: r.url, title: r.Finding || "Untitled finding", project: r.Project || "", type: r.Type || "", impact: r.Impact || "",
+  status: r.Status || "New", scope: r["Scope says"], meeting: r["Meeting says"], change: r["Suggested change"], question: r["Question for owner"],
+  scopeSrc: r["Scope source"], meetingSrc: r["Meeting source"], report: r.Report,
+  meetingDate: r["date:Meeting date:start"], first: r["date:First seen:start"], last: r["date:Last seen:start"]
+});
+const asObj = p => { if (typeof p === "string") { try { return JSON.parse(p); } catch (e) { return null; } } return p; };
+const queryInput = () => ({ data: { mode: "rows", data_source_url: source, limit: 100, sort: [{ property: "Last seen", direction: "descending" }] } });
+
+function errorCopy(e) {
+  const code = e && e.code;
+  switch (code) {
+    case "needs_reauth": return ["Your Notion connection has expired. Reconnect Notion in claude.ai Settings → Connectors, then reload.", null];
+    case "server_not_connected":
+    case "selection_required": return ["Drift Tracker reads findings from Notion. Add the Notion connector in claude.ai Settings → Connectors, then reload.", null];
+    case "not_in_manifest":
+    case "approval_required": return ["Drift Tracker needs your permission to read Notion.", "allow"];
+    case "blocked_by_policy": return ["Your organization blocks this Notion tool for this page.", null];
+    case "server_unavailable":
+    case "rate_limited": return ["Notion is not answering right now. Showing the last findings it sent.", "retry"];
+    case "tool_error": return ["Notion could not read the findings database. Check the link in Settings.", "settings"];
+    default: return ["Notion returned an error. Showing the last findings it sent.", "retry"];
+  }
+}
+function showBanner(text, action, bad) {
+  $("banner").hidden = !text; $("banner").classList.toggle("bad", !!bad); $("bannerText").textContent = text || "";
+  $("bannerAction").innerHTML = action === "allow" ? `<button type="button" class="btn tiny primary" id="allowBtn">Allow Notion</button>`
+    : action === "retry" ? `<button type="button" class="btn tiny" id="retryBtn">Try again</button>`
+    : action === "settings" ? `<button type="button" class="btn tiny" id="openSettings">Open Settings</button>` : "";
+}
+function setFresh(ms) { $("fresh").textContent = ms ? "Updated " + new Date(ms).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : ""; }
+
+function applyResult(result) {
+  const p = asObj(result && result.payload);
+  if (!p || !Array.isArray(p.results)) { showBanner("Notion answered in an unexpected format. Check the link in Settings.", "settings", true); return; }
+  rows = p.results.map(norm); live = true;
+  showBanner("");
+  setFresh(result.cache ? result.cache.storedAt : Date.now());
+  renderAll();
+}
+
+function startWatch() {
+  if (unwatch) { unwatch(); unwatch = null; }
+  if (!source) return; // no database linked yet: keep showing the sample findings
+  $("fresh").textContent = "Loading findings…";
+  unwatch = mcp.watchTool(SERVER, "notion-query-data-sources", queryInput(), ev => {
+    if (ev.type === "data") return applyResult(ev.result);
+    const [text, action] = errorCopy(ev.error);
+    const denial = ["needs_reauth", "server_not_connected", "blocked_by_policy", "approval_required", "not_in_manifest", "selection_required"].includes(ev.error && ev.error.code);
+    if (denial && live) { rows = SAMPLE.slice(); live = false; renderAll(); }
+    if (!live) setFresh(0);
+    showBanner(text, action, denial);
+  }, { cache: { staleTime: 60000, gcTime: 86400000 }, refetchInterval: 300000 });
+  $("refreshBtn").hidden = false;
+}
+
+async function refresh() {
+  if (!mcp) return;
+  $("refreshBtn").disabled = true;
+  try { applyResult(await mcp.callTool(SERVER, "notion-query-data-sources", queryInput(), { cache: { refresh: true, staleTime: 60000, gcTime: 86400000 } })); }
+  catch (e) { const [t, a] = errorCopy(e); showBanner(t, a, false); }
+  finally { $("refreshBtn").disabled = false; }
+}
+
+let toastTimer;
+function toast(msg, undo) {
+  let t = document.querySelector(".toast");
+  if (!t) { t = document.createElement("div"); t.className = "toast"; t.setAttribute("role", "status"); document.body.appendChild(t); }
+  t.textContent = msg; t.hidden = false;
+  if (undo) { const b = document.createElement("button"); b.type = "button"; b.textContent = "Undo"; b.addEventListener("click", () => { t.hidden = true; undo(); }); t.append(" ", b); }
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, undo ? 6000 : 3500);
+}
+
+const pending = new Set();
+async function setStatus(id, status, quiet) {
+  const r = rows.find(x => x.id === id); if (!r || pending.has(id)) return;
+  const before = r.status;
+  r.status = status; renderAll();
+  if (!live) { if (!quiet) toast(`Marked ${status.toLowerCase()} (sample data)`, () => setStatus(id, before, true)); return; }
+  pending.add(id);
+  try {
+    await mcp.callTool(SERVER, "notion-update-page", { page_id: id, command: "update_properties", properties: { Status: status } });
+    if (!quiet) toast(status === "New" ? "Reopened" : `Marked ${status.toLowerCase()}`, () => setStatus(id, before, true));
+    mcp.invalidate(SERVER, "notion-query-data-sources").catch(() => {});
+  } catch (e) {
+    const code = e && e.code;
+    if (code === "server_unavailable" || code === "upstream_error") {
+      toast("Notion did not confirm the change. Refreshing to check.");
+      refresh();
+    } else {
+      r.status = before; renderAll();
+      toast(code === "tool_error" ? "Notion refused the change. Open the row in Notion to check it." : errorCopy(e)[0]);
+    }
+  } finally { pending.delete(id); }
+}
+
+async function connectSource() {
+  const raw = $("srcInput").value.trim();
+  if (!raw) { $("srcStatus").textContent = "Paste a link to a Notion database first."; return; }
+  if (!mcp) { $("srcStatus").textContent = "Open this page in Claude with the Notion connector to connect a database."; return; }
+  let found = (raw.match(/collection:\/\/[0-9a-f-]{36}/) || [])[0];
+  $("srcSave").disabled = true; $("srcStatus").textContent = "Looking up the database…";
+  try {
+    if (!found) {
+      const res = await mcp.callTool(SERVER, "notion-fetch", { id: raw });
+      found = (JSON.stringify(res.payload ?? res.content).match(/collection:\/\/[0-9a-f-]{36}/) || [])[0];
+    }
+    if (!found) { $("srcStatus").textContent = "That link is a page without a database. Paste the link to the findings database itself."; return; }
+    source = found; sourceLink = /^https:\/\//.test(raw) ? raw : ""; remember(); renderPrompt();
+    $("srcStatus").textContent = "Connected."; startWatch();
+  } catch (e) {
+    $("srcStatus").textContent = e && e.code === "tool_error" ? "Notion could not open that link. Check it is shared with your Notion connection." : errorCopy(e)[0];
+  } finally { $("srcSave").disabled = false; }
+}
+
+// ---------- Events ----------
+$("statusSeg").addEventListener("click", e => { const b = e.target.closest("[data-status]"); if (!b) return; ui.status = b.dataset.status; renderFilters(); renderList(); });
+$("projectSel").addEventListener("change", e => { ui.project = e.target.value; renderList(); });
+$("impactSel").addEventListener("change", e => { ui.impact = e.target.value; renderList(); });
+$("list").addEventListener("click", e => {
+  const o = e.target.closest("[data-open]"), s = e.target.closest("[data-set]");
+  if (o) { ui.open = ui.open === o.dataset.open ? null : o.dataset.open; renderList(); const b = document.querySelector(`[data-open="${CSS.escape(o.dataset.open)}"]`); if (b) b.focus(); }
+  else if (s) setStatus(s.dataset.id, s.dataset.set);
+});
+$("settingsBtn").addEventListener("click", () => { const open = $("settings").hidden; $("settings").hidden = !open; $("settingsBtn").setAttribute("aria-expanded", open); });
+$("srcSave").addEventListener("click", connectSource);
+$("refreshBtn").addEventListener("click", refresh);
+document.addEventListener("click", async e => {
+  const c = e.target.closest("[data-copy]");
+  if (c) { const ta = $(c.dataset.copy); try { await navigator.clipboard.writeText(ta.value); toast("Copied"); } catch (err) { ta.focus(); ta.select(); toast("Text selected. Press Cmd+C or Ctrl+C to copy."); } }
+  if (e.target.closest("#retryBtn")) refresh();
+  if (e.target.closest("#openSettings")) { $("settings").hidden = false; $("settingsBtn").setAttribute("aria-expanded", "true"); $("srcInput").focus(); }
+  if (e.target.closest("#allowBtn")) refresh();
+});
+
+renderPrompt(); renderAll();
+if (sourceLink) $("srcInput").value = sourceLink;
+if (window.claude && window.claude.use) {
+  window.claude.use("mcp").then(m => {
+    mcp = m;
+    if (!mcp) { setFresh(0); return; }
+    startWatch();
+  }).catch(() => {});
+}
+</script>
+

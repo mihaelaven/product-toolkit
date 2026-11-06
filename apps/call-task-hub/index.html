@@ -1,0 +1,695 @@
+<meta charset="utf-8">
+<title>Call Task Hub</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: calls on the left, one task inbox on the right; Slack and Linear composers open inline under a task. */
+:root {
+  --bg: #f3f5f8;
+  --surface: #ffffff;
+  --sunk: #eaeef3;
+  --ink: #18212c;
+  --muted: #5c6878;
+  --line: #d9dfe7;
+  --accent: #2b59c3;
+  --action: #2f6fd1;
+  --decision: #7a4fc4;
+  --question: #c98419;
+  --good: #2b7f52;
+  --bad: #c0412c;
+  --slack: #4a154b;
+  --linear: #5e6ad2;
+  --font-display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141b; --surface: #161e28; --sunk: #1d2633; --ink: #e5eaf1; --muted: #95a2b3; --line: #2a3544;
+    --accent: #7fa3ff; --action: #5d95ef; --decision: #a986e8; --question: #e3a748; --good: #53bd84; --bad: #ef6a52; --slack: #c28fc4; --linear: #8f98f0;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141b; --surface: #161e28; --sunk: #1d2633; --ink: #e5eaf1; --muted: #95a2b3; --line: #2a3544;
+  --accent: #7fa3ff; --action: #5d95ef; --decision: #a986e8; --question: #e3a748; --good: #53bd84; --bad: #ef6a52; --slack: #c28fc4; --linear: #8f98f0;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 14px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 40px;
+}
+h1, h2, h3 { font-family: var(--font-display); font-weight: 600; margin: 0; text-wrap: balance; }
+h1 { font-size: 26px; letter-spacing: -0.01em; }
+h2 { font-size: 17px; }
+.eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+input[type="text"], input[type="date"], input[type="search"], select, textarea { border: 1px solid var(--line); background: var(--sunk); border-radius: 5px; padding: 5px 8px; min-width: 0; }
+textarea { width: 100%; resize: vertical; font-family: var(--font-data); font-size: 12.5px; line-height: 1.5; }
+
+.page { max-width: 1320px; margin: 0 auto; display: grid; gap: 16px; }
+.top { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: end; justify-content: space-between; }
+.chip-sample { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 8px; border: 1px dashed var(--muted); color: var(--muted); border-radius: 999px; vertical-align: middle; margin-left: 8px; }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 6px 11px; font-weight: 500; }
+.btn:hover { border-color: var(--accent); }
+.btn:disabled { opacity: 0.6; cursor: progress; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.btn.tiny { padding: 2px 8px; font-size: 11.5px; border-radius: 5px; }
+.link-btn { background: none; border: 0; color: var(--muted); font-size: 12px; padding: 2px 0; text-decoration: underline; text-underline-offset: 2px; }
+.link-btn:hover { color: var(--ink); }
+.link-btn.danger:hover { color: var(--bad); }
+.hint { color: var(--muted); font-size: 12.5px; margin: 0; }
+
+/* Tiles shrink to their content; equal columns keep them the same width. */
+.stats { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 10px; width: max-content; max-width: 100%; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; display: grid; gap: 2px; min-width: 0; }
+.stat .v { font-family: var(--font-display); font-size: 24px; font-weight: 600; line-height: 1.15; }
+.stat .s { font-size: 12px; color: var(--muted); }
+.v.bad { color: var(--bad); }
+
+.layout { display: grid; grid-template-columns: 290px minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 900px) { .layout { grid-template-columns: minmax(0, 1fr); } .stats { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); width: auto; } }
+.rail { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 8px; }
+@media (min-width: 901px) { .rail { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); max-height: calc(100vh - 24px); overflow-y: auto; } }
+.rail-head { display: flex; justify-content: space-between; align-items: center; }
+.call { display: grid; gap: 1px; text-align: left; border: 1px solid transparent; background: none; border-radius: 7px; padding: 7px 9px; width: 100%; }
+.call:hover { background: var(--sunk); }
+.call[aria-current="true"] { background: var(--sunk); border-color: var(--line); }
+.call .t { font-weight: 600; }
+.call .m { font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
+.call .n { font-family: var(--font-data); font-size: 11px; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: grid; gap: 10px; min-width: 0; }
+.main { display: grid; gap: 12px; min-width: 0; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button { border: 0; background: var(--surface); padding: 4px 10px; font-size: 12.5px; color: var(--muted); }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--sunk); color: var(--ink); font-weight: 600; }
+.toolbar input[type="search"] { flex: 1 1 160px; }
+.toggle { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--muted); white-space: nowrap; }
+
+.callhead { display: grid; gap: 4px; }
+.callhead-top { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: baseline; justify-content: space-between; }
+.callhead p { margin: 0; color: var(--muted); max-width: 90ch; }
+
+.group { display: grid; }
+.group > .eyebrow { padding: 10px 0 4px; display: flex; gap: 6px; }
+.group > .eyebrow.bad { color: var(--bad); }
+.item { border-top: 1px solid var(--line); }
+.row { display: grid; grid-template-columns: 18px 74px minmax(0, 1fr) 96px 88px 150px; gap: 8px; align-items: center; padding: 6px 0; }
+@media (max-width: 700px) {
+  .row { grid-template-columns: 18px minmax(0, 1fr) auto; grid-template-areas: "c x x" "c tag tag" "c o d" "c a a"; row-gap: 4px; }
+  .row > .chk { grid-area: c; align-self: start; margin-top: 3px; } .row > .tag { grid-area: tag; justify-self: start; } .row > .txt { grid-area: x; }
+  .row > .owner { grid-area: o; } .row > .due { grid-area: d; text-align: right; } .row > .acts { grid-area: a; justify-content: flex-start; }
+}
+.chk { width: 16px; height: 16px; accent-color: var(--good); margin: 0; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--decision); justify-self: center; }
+.tag { font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; padding: 1px 6px; border-radius: 4px; text-align: center; color: var(--tc); background: color-mix(in srgb, var(--tc) 13%, transparent); }
+.txt { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.item.done .txt { color: var(--muted); text-decoration: line-through; }
+.owner, .due { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.owner.me { color: var(--ink); font-weight: 600; }
+.due { font-family: var(--font-data); font-size: 11.5px; }
+.due.over { color: var(--bad); font-weight: 500; }
+.acts { display: flex; gap: 4px; justify-content: flex-end; align-items: center; }
+.sbtn { border: 1px solid var(--line); background: var(--surface); border-radius: 5px; padding: 1px 7px; font-size: 11.5px; font-weight: 500; white-space: nowrap; }
+.sbtn.slack { color: var(--slack); } .sbtn.linear { color: var(--linear); }
+.sbtn.on { background: color-mix(in srgb, var(--bc) 12%, var(--surface)); border-color: color-mix(in srgb, var(--bc) 45%, transparent); }
+.sbtn[aria-expanded="true"] { border-color: var(--accent); }
+.icon-btn { border: 1px solid var(--line); background: var(--sunk); border-radius: 5px; width: 24px; height: 22px; display: inline-grid; place-items: center; padding: 0; font-size: 10px; }
+.icon-btn[aria-expanded="true"] { background: var(--surface); border-color: var(--accent); }
+
+.detail { display: grid; gap: 10px; padding: 4px 0 12px 26px; }
+.quote { margin: 0; padding: 6px 10px; border-left: 3px solid var(--line); color: var(--muted); font-size: 13px; }
+.quote b { color: var(--ink); font-weight: 600; }
+.fields { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+@media (max-width: 700px) { .fields { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .fields .wide { grid-column: 1 / -1; } }
+.field { display: grid; gap: 2px; min-width: 0; }
+.field label { font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 0.04em; }
+.field input, .field select { width: 100%; }
+.composer { border: 1px solid var(--line); border-radius: 8px; padding: 10px; display: grid; gap: 8px; background: color-mix(in srgb, var(--bc) 4%, var(--surface)); border-left: 3px solid var(--bc); }
+.composer .row2 { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.composer .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 700px) { .composer .grid3 { grid-template-columns: minmax(0, 1fr); } }
+.foot { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.sent { font-size: 12px; color: var(--muted); }
+
+.paste { display: grid; gap: 10px; }
+.paste .fields { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 2fr); }
+.status-line { font-size: 12.5px; color: var(--muted); min-height: 1.2em; }
+.status-line.err { color: var(--bad); }
+.empty { padding: 18px 0; color: var(--muted); }
+.toast-undo { margin-left: 10px; background: none; border: 1px solid currentColor; color: inherit; border-radius: 4px; padding: 0 8px; font-weight: 600; }
+.toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 6px; font-weight: 500; z-index: 20; max-width: calc(100% - 32px); }
+</style>
+
+<div class="page">
+  <header class="top">
+    <div>
+      <div class="eyebrow">PM workflow</div>
+      <h1>Call Task Hub <span class="chip-sample">Sample workspace</span></h1>
+    </div>
+    <button class="btn primary tiny" id="pasteBtn" type="button">Add transcript</button>
+  </header>
+
+  <section class="stats" id="stats" aria-label="Summary"></section>
+
+  <div class="layout">
+    <aside class="rail" aria-label="Calls">
+      <div class="rail-head"><span class="eyebrow">Calls</span></div>
+      <div id="callList" style="display:grid;gap:2px"></div>
+      <button type="button" class="link-btn" id="resetBtn" style="justify-self:start;margin-top:6px">Reset sample data</button>
+    </aside>
+
+    <main class="main">
+      <section class="panel paste" id="pastePanel" hidden aria-labelledby="pasteTitle">
+        <div class="callhead-top"><h2 id="pasteTitle">Add a call transcript</h2><button type="button" class="link-btn" id="loadExample">Load example transcript</button></div>
+        <div class="fields">
+          <div class="field"><label for="pTitle">Call name</label><input type="text" id="pTitle" placeholder="Weekly product sync"></div>
+          <div class="field"><label for="pDate">Date</label><input type="date" id="pDate"></div>
+          <div class="field"><label for="pMe">Your name in the transcript</label><input type="text" id="pMe" placeholder="e.g. Alex"></div>
+        </div>
+        <div class="field"><label for="pText">Transcript</label><textarea id="pText" rows="10" placeholder="Paste the transcript from Notion. Lines like &quot;Name: what they said&quot; work best."></textarea></div>
+        <div class="foot">
+          <span class="status-line" id="pStatus" role="status"></span>
+          <span style="display:flex;gap:8px">
+            <button type="button" class="btn" id="pCancel">Cancel</button>
+            <button type="button" class="btn" id="pRules">Extract by keywords</button>
+            <button type="button" class="btn primary" id="pClaude" hidden>Extract with Claude</button>
+          </span>
+        </div>
+      </section>
+
+      <section class="panel" aria-label="Tasks">
+        <div class="callhead" id="callHead"></div>
+        <div class="toolbar">
+          <span class="seg" role="group" aria-label="Type" id="typeSeg">
+            <button type="button" data-type="all" aria-pressed="true">All</button>
+            <button type="button" data-type="action" aria-pressed="false">Actions</button>
+            <button type="button" data-type="decision" aria-pressed="false">Decisions</button>
+            <button type="button" data-type="question" aria-pressed="false">Questions</button>
+          </span>
+          <select id="ownerSel" aria-label="Owner"></select>
+          <input type="search" id="search" placeholder="Search tasks" aria-label="Search tasks">
+          <label class="toggle"><input type="checkbox" id="showDone">Show done</label>
+        </div>
+        <div id="list"></div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+const KEY = "cth-state-v1";
+const DAY = 86400000;
+const TYPES = {
+  action: { label: "Action", color: "var(--action)" },
+  decision: { label: "Decision", color: "var(--decision)" },
+  question: { label: "Question", color: "var(--question)" }
+};
+const CHANNELS = ["#card-deposits", "#kyc-onboarding", "#support-escalations", "#product", "#eng-payments"];
+const TEAMS = [
+  { id: "PAY", name: "Payments" }, { id: "ONB", name: "Onboarding" }, { id: "MOB", name: "Mobile" },
+  { id: "WEB", name: "Web" }, { id: "OPS", name: "Support ops" }
+];
+const PRIORITIES = ["Urgent", "High", "Medium", "Low"];
+
+// Dates are stored as YYYY-MM-DD in local time. Sample dates are offsets from the day the sample loads.
+const pad = n => String(n).padStart(2, "0");
+const toISO = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const fromISO = s => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+const today = () => toISO(new Date());
+const addDays = (iso, n) => { const d = fromISO(iso); d.setDate(d.getDate() + n); return toISO(d); };
+const diffDays = (a, b) => Math.round((fromISO(a) - fromISO(b)) / DAY);
+const fmtDay = iso => fromISO(iso).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+const validISO = d => /^\d{4}-\d{2}-\d{2}$/.test(d || "") && toISO(fromISO(d)) === d;
+// "Alex", "alex" and "Alex Smith" all count as the person using the hub.
+const isMe = (name, me) => { if (!me || !name) return false; const a = name.trim().toLowerCase(), b = me.trim().toLowerCase(); return a === b || a.split(/\s+/)[0] === b.split(/\s+/)[0]; };
+
+function sampleState() {
+  const t = today(), o = n => addDays(t, n);
+  const calls = [
+    { id: "c1", title: "Card deposits sync", date: o(0), attendees: ["You", "Elif Yılmaz", "Marco Silva", "Sam Carter", "Nora Lind"], channel: "#card-deposits", team: "PAY",
+      summary: "3DS failures on Visa, a source-of-funds rule for large deposits, and duplicate processor webhooks." },
+    { id: "c2", title: "KYC onboarding design review", date: o(-3), attendees: ["You", "Ana Ruiz", "Priya Nair", "Hana Sato", "Nora Lind"], channel: "#kyc-onboarding", team: "ONB",
+      summary: "Selfie step moves after address entry. Analytics for every KYC step. Open question on reusing passport scans." },
+    { id: "c3", title: "Support escalations weekly", date: o(-5), attendees: ["You", "Ben Ortiz", "Sam Carter", "Daniel Kim"], channel: "#support-escalations", team: "OPS",
+      summary: "Duplicate push notifications on Android 15, a deposit-pending macro, and a 4-hour rule for frozen accounts." }
+  ];
+  const items = [
+    { id: "i1", callId: "c1", type: "action", text: "Add 3DS retry with a fresh session for Visa challenge failures", owner: "Elif Yılmaz", due: o(3), quote: ["Elif Yılmaz", "Challenge failures are at four percent on Visa in staging. I'll add a retry with a fresh session by Thursday."] },
+    { id: "i2", callId: "c1", type: "decision", text: "Deposits over €5,000 need a source-of-funds check before they clear", owner: "Nora Lind", due: null, quote: ["Nora Lind", "So we agreed: anything over five thousand euros waits for the source-of-funds check before it clears."] },
+    { id: "i3", callId: "c1", type: "action", text: "Make ledger writes idempotent for duplicate processor webhooks", owner: "Marco Silva", due: o(7), quote: ["Marco Silva", "The processor webhook sometimes lands twice. We'll make the ledger write idempotent, I can do it next week."] },
+    { id: "i4", callId: "c1", type: "question", text: "What is the decline copy for insufficient funds?", owner: "You", due: null, quote: ["Sam Carter", "Can someone confirm the decline copy for insufficient funds? I don't have it in the test plan."] },
+    { id: "i5", callId: "c1", type: "action", text: "Get the insufficient-funds copy from Ana and post it in #card-deposits", owner: "You", due: o(0), quote: ["You", "I'll get the copy from Ana and post it in the channel today."] },
+    { id: "i6", callId: "c2", type: "decision", text: "Move the selfie step after address entry to cut early drop-off", owner: "Ana Ruiz", due: null, quote: ["Ana Ruiz", "Let's go with the selfie after the address. Most of the early drop-off is at the camera prompt."] },
+    { id: "i7", callId: "c2", type: "action", text: "Update the Figma flow with the new selfie position and share for sign-off", owner: "Ana Ruiz", due: o(2), quote: ["Ana Ruiz", "I'll update the flow in Figma and share it for sign-off by Wednesday."] },
+    { id: "i8", callId: "c2", type: "action", text: "Add analytics events for each KYC step: start, submit and fail", owner: "Priya Nair", due: o(9), quote: ["Priya Nair", "I'll add start, submit and fail events for every step so we can see where people stop."] },
+    { id: "i9", callId: "c2", type: "question", text: "Can the passport scan count as proof of address in Germany?", owner: "Nora Lind", due: o(4), quote: ["Hana Sato", "Could we reuse the passport scan as proof of address for German users?"] },
+    { id: "i10", callId: "c2", type: "action", text: "Ask the KYC vendor if liveness retries are billed as new checks", owner: "You", due: o(-2), done: true, quote: ["You", "I'll ask the vendor whether liveness retries are billed as new checks."] },
+    { id: "i11", callId: "c3", type: "action", text: "Fix duplicate push notifications after app update on Android 15", owner: "Daniel Kim", due: o(-1), quote: ["Ben Ortiz", "We had forty tickets about double notifications since the Android 15 update."], linear: { key: "MOB-212", team: "MOB" } },
+    { id: "i12", callId: "c3", type: "action", text: "Add a support macro for deposit-pending tickets with expected timing", owner: "Ben Ortiz", due: o(-3), done: true, quote: ["Ben Ortiz", "I'll write a macro for deposit pending with the expected timing."] },
+    { id: "i13", callId: "c3", type: "decision", text: "Frozen-account escalations go to compliance within 4 hours", owner: "Ben Ortiz", due: null, quote: ["Daniel Kim", "Agreed then, frozen accounts go to compliance within four hours, no exceptions."] },
+    { id: "i14", callId: "c3", type: "action", text: "Share the top 5 contact reasons from October in #product", owner: "You", due: o(4), quote: ["You", "I'll pull the top five contact reasons for October and share them in product."], slack: { channel: "#product", at: o(-4) } }
+  ];
+  return { calls, items, seq: { PAY: 230, ONB: 87, MOB: 212, WEB: 154, OPS: 41 } };
+}
+
+function readStore() { try { const v = localStorage.getItem(KEY); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+
+let state = readStore() || sampleState();
+const ui = { call: "all", type: "all", owner: "all", q: "", showDone: false, open: null, composer: null };
+let sampleFn = null;
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const callOf = it => state.calls.find(c => c.id === it.callId) || { title: "Unknown call", date: today(), attendees: [], channel: "#product", team: "PAY" };
+const short = name => { if (!name) return "Unassigned"; if (name === "You") return "You"; const [a, b] = name.split(" "); return b ? `${a} ${b[0]}.` : a; };
+const mention = name => name ? (name === "You" ? "@you" : "@" + name.split(" ")[0].toLowerCase()) : "";
+const people = () => [...new Set(state.calls.flatMap(c => c.attendees).concat(state.items.map(i => i.owner)).filter(Boolean))].sort((a, b) => (a === "You" ? -1 : b === "You" ? 1 : a.localeCompare(b)));
+
+// ---------- Stats ----------
+function renderStats() {
+  const t = today(), open = state.items.filter(i => i.type !== "decision" && !i.done);
+  const actions = open.filter(i => i.type === "action");
+  const overdue = open.filter(i => i.due && i.due < t);
+  const mine = open.filter(i => i.owner === "You");
+  const qs = open.filter(i => i.type === "question");
+  $("stats").innerHTML = `
+    <div class="stat"><span class="eyebrow">Open actions</span><span class="v">${actions.length}</span><span class="s">across ${state.calls.length} calls</span></div>
+    <div class="stat"><span class="eyebrow">Overdue</span><span class="v ${overdue.length ? "bad" : ""}">${overdue.length}</span><span class="s">past their due date</span></div>
+    <div class="stat"><span class="eyebrow">On your plate</span><span class="v">${mine.length}</span><span class="s">assigned to you</span></div>
+    <div class="stat"><span class="eyebrow">Open questions</span><span class="v">${qs.length}</span><span class="s">waiting for an answer</span></div>`;
+}
+
+// ---------- Calls ----------
+function renderCalls() {
+  const openCount = id => state.items.filter(i => (id === "all" || i.callId === id) && i.type !== "decision" && !i.done).length;
+  const calls = state.calls.slice().sort((a, b) => b.date.localeCompare(a.date));
+  $("callList").innerHTML = `<button type="button" class="call" data-call="all" aria-current="${ui.call === "all"}"><span class="t">All calls</span><span class="m"><span>Every task in one place</span><span class="n">${openCount("all")} open</span></span></button>` +
+    calls.map(c => `<button type="button" class="call" data-call="${c.id}" aria-current="${ui.call === c.id}"><span class="t">${esc(c.title)}</span><span class="m"><span>${fmtDay(c.date)} · ${c.attendees.length} people</span><span class="n">${openCount(c.id)} open</span></span></button>`).join("");
+}
+$("callList").addEventListener("click", e => {
+  const b = e.target.closest("[data-call]"); if (!b) return;
+  ui.call = b.dataset.call; ui.open = null; ui.composer = null; renderAll();
+});
+
+function renderCallHead() {
+  if (ui.call === "all") { $("callHead").innerHTML = `<div class="callhead-top"><h2>All tasks</h2></div>`; return; }
+  const c = state.calls.find(x => x.id === ui.call);
+  const rc = ui.composer && ui.composer.id === "recap:" + c.id;
+  $("callHead").innerHTML = `<div class="callhead-top"><h2>${esc(c.title)}</h2><span style="display:flex;gap:6px;align-items:center">${c.recapSent ? `<span class="sent">Recap sent to ${esc(c.recapSent.channel)}, ${fmtDay(c.recapSent.at)}</span>` : ""}<button type="button" class="sbtn slack${c.recapSent ? " on" : ""}" style="--bc:var(--slack)" data-recap="${c.id}" aria-expanded="${!!rc}">${c.recapSent ? "Send recap again" : "Send recap to Slack"}</button><button type="button" class="link-btn danger" data-delcall="${c.id}">Remove call</button></span></div>
+    <p>${fmtDay(c.date)} · ${c.attendees.map(esc).join(", ")}</p>${c.summary ? `<p>${esc(c.summary)}</p>` : ""}
+    ${rc ? slackComposer("recap:" + c.id, c.channel, recapText(c)) : ""}`;
+}
+$("callHead").addEventListener("click", e => {
+  const r = e.target.closest("[data-recap]"), d = e.target.closest("[data-delcall]");
+  if (r) { const id = "recap:" + r.dataset.recap; snapshotComposer(); ui.composer = ui.composer && ui.composer.id === id ? null : { id, kind: "slack" }; renderCallHead(); renderList(); }
+  else if (d) {
+    if (!d.dataset.confirm) { d.dataset.confirm = "1"; d.textContent = "Click again to remove the call and its tasks"; setTimeout(() => { if (d.isConnected) { delete d.dataset.confirm; d.textContent = "Remove call"; } }, 3000); return; }
+    state.items = state.items.filter(i => i.callId !== d.dataset.delcall); state.calls = state.calls.filter(c => c.id !== d.dataset.delcall);
+    ui.call = "all"; save(); renderAll(); toast("Call removed");
+  } else handleComposerClick(e);
+});
+
+// ---------- Messages and tickets ----------
+function slackText(it) {
+  const c = callOf(it), q = it.quote ? `\n> ${it.quote[1]}` : "";
+  if (it.type === "decision") return `*Decision* from ${c.title} (${fmtDay(c.date)}): ${it.text}${q}`;
+  if (it.type === "question") return `*Open question* from ${c.title}: ${it.text} ${mention(it.owner)}${q}`;
+  return `*Action* from ${c.title}: ${it.text}\nOwner: ${mention(it.owner) || "unassigned"}${it.due ? ` · Due ${fmtDay(it.due)}` : ""}${q}`;
+}
+function recapText(c) {
+  const its = state.items.filter(i => i.callId === c.id);
+  const sec = (title, list, f) => list.length ? `\n*${title}*\n` + list.map(f).join("\n") : "";
+  return `*${c.title} recap* (${fmtDay(c.date)})` +
+    sec("Decisions", its.filter(i => i.type === "decision"), i => `• ${i.text}`) +
+    sec("Actions", its.filter(i => i.type === "action"), i => `• ${i.done ? "~" : ""}${i.text}${i.done ? "~" : ""} (${mention(i.owner) || "unassigned"}${i.due ? ", " + fmtDay(i.due) : ""})`) +
+    sec("Open questions", its.filter(i => i.type === "question" && !i.done), i => `• ${i.text} ${mention(i.owner)}`);
+}
+// Ticket body follows the house template: Context, Documentation, Design, Acceptance criteria.
+function ticketBody(it) {
+  const c = callOf(it);
+  return `## Context\n${it.text}${/[.?!]$/.test(it.text) ? "" : "."} Raised in ${c.title} on ${fmtDay(c.date)}.\n${it.quote ? `> ${it.quote[0]}: "${it.quote[1]}"\n` : ""}\n## Documentation\n- Call notes: ${c.title}\n\n## Design\n- \n\n## Acceptance criteria\n- [ ] `;
+}
+
+function slackComposer(id, channel, text) {
+  const opts = CHANNELS.concat(people().filter(p => p !== "You").map(p => "@" + p)).map(ch => `<option${ch === channel ? " selected" : ""}>${esc(ch)}</option>`).join("");
+  return `<div class="composer" style="--bc:var(--slack)" data-comp="${id}">
+    <div class="row2"><div class="field" style="min-width:200px"><label for="ch-${id}">Post to</label><select id="ch-${id}">${opts}</select></div><span class="hint">Demo mode: nothing is posted.</span></div>
+    <div class="field"><label for="msg-${id}">Message</label><textarea id="msg-${id}" rows="${Math.min(12, text.split("\n").length + 1)}">${esc(text)}</textarea></div>
+    <div class="foot"><span></span><span style="display:flex;gap:8px"><button type="button" class="btn tiny" data-copy="msg-${id}">Copy</button><button type="button" class="btn primary tiny" data-send="${id}">Send to Slack</button></span></div>
+  </div>`;
+}
+function linearComposer(it) {
+  const c = callOf(it), team = (it.linear && it.linear.team) || c.team || "PAY";
+  const teamOpts = TEAMS.map(t => `<option value="${t.id}"${t.id === team ? " selected" : ""}>${t.name} (${t.id})</option>`).join("");
+  const prioOpts = PRIORITIES.map(p => `<option${p === (it.type === "action" && it.due && it.due <= today() ? "High" : "Medium") ? " selected" : ""}>${p}</option>`).join("");
+  const ownOpts = ["Unassigned"].concat(people()).map(p => `<option${p === (it.owner || "Unassigned") ? " selected" : ""}>${esc(p)}</option>`).join("");
+  return `<div class="composer" style="--bc:var(--linear)" data-comp="lin:${it.id}">
+    <div class="field"><label for="lt-${it.id}">Title</label><input type="text" id="lt-${it.id}" value="${esc(it.text)}"></div>
+    <div class="grid3">
+      <div class="field"><label for="lteam-${it.id}">Team</label><select id="lteam-${it.id}">${teamOpts}</select></div>
+      <div class="field"><label for="lp-${it.id}">Priority</label><select id="lp-${it.id}">${prioOpts}</select></div>
+      <div class="field"><label for="la-${it.id}">Assignee</label><select id="la-${it.id}">${ownOpts}</select></div>
+    </div>
+    <div class="field"><label for="ld-${it.id}">Description</label><textarea id="ld-${it.id}" rows="12">${esc(ticketBody(it))}</textarea></div>
+    <div class="foot"><span class="status-line" id="lst-${it.id}" role="status">Demo mode: the ticket is created here only.</span><span style="display:flex;gap:8px">${sampleFn ? `<button type="button" class="btn tiny" data-ac="${it.id}">Draft acceptance criteria with Claude</button>` : ""}<button type="button" class="btn tiny" data-copy="ld-${it.id}">Copy</button><button type="button" class="btn primary tiny" data-create="${it.id}">Create demo ticket</button></span></div>
+  </div>`;
+}
+
+// ---------- Task list ----------
+function visibleItems() {
+  const q = ui.q.trim().toLowerCase();
+  return state.items.filter(i =>
+    (ui.call === "all" || i.callId === ui.call) &&
+    (ui.type === "all" || i.type === ui.type) &&
+    (ui.owner === "all" || (ui.owner === "__none" ? !i.owner : i.owner === ui.owner)) &&
+    (!q || [i.text, i.owner || "", callOf(i).title, i.quote ? i.quote.join(" ") : ""].join(" ").toLowerCase().includes(q)));
+}
+function groupOf(it, t) {
+  if (it.done) return "done";
+  if (it.type === "decision") return "decisions";
+  if (!it.due) return "nodate";
+  const d = diffDays(it.due, t);
+  return d < 0 ? "overdue" : d === 0 ? "today" : d <= 7 ? "week" : "later";
+}
+const GROUPS = [["overdue", "Overdue"], ["today", "Today"], ["week", "Next 7 days"], ["later", "Later"], ["nodate", "No due date"], ["decisions", "Decisions"], ["done", "Done"]];
+
+function rowHtml(it) {
+  const t = today(), open = ui.open === it.id, ty = TYPES[it.type];
+  const over = it.due && !it.done && it.type !== "decision" && it.due < t;
+  const slackOn = !!it.slack, linOn = !!it.linear;
+  const compSlack = ui.composer && ui.composer.id === "sl:" + it.id, compLin = ui.composer && ui.composer.id === "lin:" + it.id;
+  const check = it.type === "decision" ? `<span class="dot chk" title="Decision"></span>` : `<input type="checkbox" class="chk" data-done="${it.id}" ${it.done ? "checked" : ""} aria-label="Mark ${esc(it.text)} done">`;
+  let detail = "";
+  if (open || compSlack || compLin) {
+    const c = callOf(it);
+    const ownOpts = ["Unassigned"].concat(people()).map(p => `<option${p === (it.owner || "Unassigned") ? " selected" : ""}>${esc(p)}</option>`).join("");
+    const typeOpts = Object.entries(TYPES).map(([k, v]) => `<option value="${k}"${k === it.type ? " selected" : ""}>${v.label}</option>`).join("");
+    detail = `<div class="detail" id="det-${it.id}">
+      ${it.quote ? `<blockquote class="quote"><b>${esc(it.quote[0])}:</b> "${esc(it.quote[1])}"<br><button type="button" class="link-btn" data-gocall="${c.id}">${esc(c.title)}, ${fmtDay(c.date)}</button></blockquote>` : ""}
+      ${open ? `<div class="fields">
+        <div class="field wide"><label for="tx-${it.id}">Task</label><input type="text" id="tx-${it.id}" data-edit="text" data-id="${it.id}" value="${esc(it.text)}"></div>
+        <div class="field"><label for="ow-${it.id}">Owner</label><select id="ow-${it.id}" data-edit="owner" data-id="${it.id}">${ownOpts}</select></div>
+        <div class="field"><label for="du-${it.id}">Due</label><input type="date" id="du-${it.id}" data-edit="due" data-id="${it.id}" value="${it.due || ""}"></div>
+        <div class="field"><label for="ty-${it.id}">Type</label><select id="ty-${it.id}" data-edit="type" data-id="${it.id}">${typeOpts}</select></div>
+      </div>
+      <div class="foot"><span class="sent">${[it.slack ? `Sent to ${esc(it.slack.channel)} on ${fmtDay(it.slack.at)}` : "", it.linear ? `Ticket ${esc(it.linear.key)}` : ""].filter(Boolean).join(" · ")}</span><button type="button" class="link-btn danger" data-del="${it.id}">Remove task</button></div>` : ""}
+      ${compSlack ? slackComposer("sl:" + it.id, (it.slack && it.slack.channel) || c.channel, slackText(it)) : ""}
+      ${compLin ? linearComposer(it) : ""}
+    </div>`;
+  }
+  return `<div class="item${it.done ? " done" : ""}" data-item="${it.id}"><div class="row">
+      ${check}
+      <span class="tag" style="--tc:${ty.color}">${ty.label}</span>
+      <span class="txt" title="${esc(it.text)}">${esc(it.text)}</span>
+      <span class="owner${it.owner === "You" ? " me" : ""}" title="${esc(it.owner || "Unassigned")}">${esc(short(it.owner))}</span>
+      <span class="due${over ? " over" : ""}">${it.due ? (it.due === t ? "Today" : fmtDay(it.due)) : ""}</span>
+      <span class="acts">
+        <button type="button" class="sbtn slack${slackOn ? " on" : ""}" style="--bc:var(--slack)" data-slack="${it.id}" aria-expanded="${!!compSlack}" title="${slackOn ? "Sent to " + esc(it.slack.channel) : "Send to Slack"}">${slackOn ? "Slack ✓" : "Slack"}</button>
+        ${it.type !== "decision" ? `<button type="button" class="sbtn linear${linOn ? " on" : ""}" style="--bc:var(--linear)" data-linear="${it.id}" aria-expanded="${!!compLin}" title="${linOn ? "Linear ticket " + esc(it.linear.key) : "Create a Linear ticket"}">${linOn ? esc(it.linear.key) : "Linear"}</button>` : ""}
+        <button type="button" class="icon-btn" data-open="${it.id}" aria-expanded="${open}" aria-label="${open ? "Hide" : "Show"} details for ${esc(it.text)}">${open ? "▾" : "▸"}</button>
+      </span>
+    </div>${detail}</div>`;
+}
+
+function renderList() {
+  const t = today(), items = visibleItems();
+  const byGroup = {};
+  items.forEach(i => { const g = groupOf(i, t); (byGroup[g] = byGroup[g] || []).push(i); });
+  Object.values(byGroup).forEach(l => l.sort((a, b) => (a.due || "9999").localeCompare(b.due || "9999") || a.text.localeCompare(b.text)));
+  let html = "";
+  GROUPS.forEach(([g, label]) => {
+    const l = byGroup[g]; if (!l || !l.length) return;
+    if (g === "done" && !ui.showDone) return;
+    html += `<div class="group"><span class="eyebrow${g === "overdue" ? " bad" : ""}">${label} <span>${l.length}</span></span>${l.map(rowHtml).join("")}</div>`;
+  });
+  const doneCount = (byGroup.done || []).length;
+  if (!html) html = `<p class="empty">${doneCount && !ui.showDone ? `All ${doneCount} matching tasks are done.` : "No tasks match these filters."}</p>`;
+  $("list").innerHTML = html;
+}
+
+function renderOwners() {
+  if (ui.owner !== "all" && ui.owner !== "__none" && !people().includes(ui.owner)) ui.owner = "all";
+  const cur = ui.owner;
+  $("ownerSel").innerHTML = `<option value="all">Everyone</option><option value="__none"${cur === "__none" ? " selected" : ""}>Unassigned</option>` + people().map(p => `<option value="${esc(p)}"${p === cur ? " selected" : ""}>${esc(p)}</option>`).join("");
+}
+
+// Composer text survives re-renders: snapshot its fields before, restore them after.
+function snapshotComposer() {
+  if (!ui.composer) return;
+  const el = document.querySelector(`[data-comp="${CSS.escape(ui.composer.id)}"]`); if (!el) return;
+  ui.composer.draft = {}; el.querySelectorAll("input, select, textarea").forEach(x => { if (x.id) ui.composer.draft[x.id] = x.value; });
+}
+function restoreComposer() {
+  if (!ui.composer || !ui.composer.draft) return;
+  Object.entries(ui.composer.draft).forEach(([id, v]) => { const x = document.getElementById(id); if (x) x.value = v; });
+}
+function renderAll() { snapshotComposer(); renderStats(); renderCalls(); renderCallHead(); renderOwners(); renderList(); restoreComposer(); }
+
+// ---------- List events ----------
+function rerenderKeep(focusSel) { snapshotComposer(); renderList(); renderStats(); renderCalls(); restoreComposer(); if (focusSel) { const el = document.querySelector(focusSel); if (el) el.focus(); } }
+$("list").addEventListener("change", e => {
+  const t = e.target;
+  if (t.dataset.done) {
+    const it = state.items.find(i => i.id === t.dataset.done); it.done = t.checked; save(); rerenderKeep();
+    toast(it.done ? "Marked done" : "Reopened", () => { it.done = !it.done; save(); rerenderKeep(); });
+    return;
+  }
+  if (t.dataset.edit) {
+    const it = state.items.find(i => i.id === t.dataset.id), k = t.dataset.edit;
+    if (k === "owner") it.owner = t.value === "Unassigned" ? null : t.value;
+    else if (k === "due") it.due = t.value || null;
+    else if (k === "type") { it.type = t.value; if (it.type === "decision") it.done = false; }
+    else if (k === "text") it.text = t.value.trim() || it.text;
+    save(); rerenderKeep(k === "text" ? null : `#${t.id}`);
+  }
+});
+$("list").addEventListener("click", e => {
+  const g = (sel) => e.target.closest(sel);
+  let b;
+  if ((b = g("[data-open]"))) { const id = b.dataset.open; ui.open = ui.open === id ? null : id; if (ui.composer && ui.composer.id.endsWith(":" + id) && ui.open !== id) ui.composer = null; rerenderKeep(`[data-open="${id}"]`); }
+  else if ((b = g("[data-slack]"))) { const id = "sl:" + b.dataset.slack; ui.composer = ui.composer && ui.composer.id === id ? null : { id, kind: "slack" }; rerenderKeep(ui.composer ? `#msg-${CSS.escape(id)}` : `[data-slack="${b.dataset.slack}"]`); }
+  else if ((b = g("[data-linear]"))) {
+    const it = state.items.find(i => i.id === b.dataset.linear);
+    if (it.linear && !(ui.composer && ui.composer.id === "lin:" + it.id)) { toast(`${it.linear.key} already exists (demo). Open the row to see details.`); return; }
+    const id = "lin:" + it.id; ui.composer = ui.composer && ui.composer.id === id ? null : { id, kind: "linear" }; rerenderKeep(ui.composer ? `#lt-${it.id}` : `[data-linear="${it.id}"]`);
+  }
+  else if ((b = g("[data-gocall]"))) { ui.call = b.dataset.gocall; renderAll(); }
+  else if ((b = g("[data-del]"))) {
+    if (!b.dataset.confirm) { b.dataset.confirm = "1"; b.textContent = "Click again to remove"; setTimeout(() => { if (b.isConnected) { delete b.dataset.confirm; b.textContent = "Remove task"; } }, 3000); return; }
+    state.items = state.items.filter(i => i.id !== b.dataset.del); ui.open = null; save(); rerenderKeep(); toast("Task removed");
+  }
+  else handleComposerClick(e);
+});
+
+// Composer buttons live in both the call header and the list.
+async function handleComposerClick(e) {
+  const g = sel => e.target.closest(sel);
+  let b;
+  if ((b = g("[data-copy]"))) {
+    const ta = $(b.dataset.copy), text = ta.value;
+    try { await navigator.clipboard.writeText(text); toast("Copied"); } catch (err) { ta.focus(); ta.select(); toast("Text selected. Press Cmd+C or Ctrl+C to copy."); }
+  } else if ((b = g("[data-send]"))) {
+    const id = b.dataset.send, ch = $("ch-" + id).value;
+    if (id.startsWith("recap:")) { const c = state.calls.find(x => x.id === id.slice(6)); c.recapSent = { channel: ch, at: today() }; }
+    else { const it = state.items.find(i => i.id === id.slice(3)); it.slack = { channel: ch, at: today() }; }
+    ui.composer = null; save(); renderAll(); toast(`Sent to ${ch} (demo)`);
+  } else if ((b = g("[data-create]"))) {
+    const it = state.items.find(i => i.id === b.dataset.create), team = $("lteam-" + it.id).value;
+    state.seq[team] = (state.seq[team] || 100) + 1;
+    it.linear = { key: `${team}-${state.seq[team]}`, team, title: $("lt-" + it.id).value, priority: $("lp-" + it.id).value, body: $("ld-" + it.id).value };
+    const a = $("la-" + it.id).value; it.owner = a === "Unassigned" ? null : a;
+    ui.composer = null; save(); renderAll(); toast(`Created ${it.linear.key} (demo)`);
+  } else if ((b = g("[data-ac]"))) draftCriteria(b);
+}
+
+// ---------- Claude: acceptance criteria and extraction ----------
+const errCopy = (code, ctx = "transcript") => (code === "refused" && ctx === "criteria" ? "Claude declined to draft criteria for this ticket. Write them by hand." : code === "invalid_json" && ctx === "transcript" ? "Claude's answer could not be read. Try again, or paste the transcript in two parts." : {
+  not_granted: "Claude is turned off for this page.", sampling_disabled: "Claude is not available on this account.",
+  rate_limited: "Too many requests. Try again in a minute.", session_expired: "Sign in to Claude again, then retry.",
+  refused: "Claude declined this transcript. Try a shorter excerpt.", invalid_json: "Claude's answer could not be read. Try again.",
+  prompt_too_large: "The transcript is too long. Paste a shorter excerpt.", cancelled: "Stopped."
+}[code] || "Claude could not answer. Try again.");
+const HIDE = ["not_granted", "sampling_disabled", "not_declared", "capability_disabled", "capability_removed"];
+
+async function draftCriteria(btn) {
+  const it = state.items.find(i => i.id === btn.dataset.ac), ta = $("ld-" + it.id), st = $("lst-" + it.id), c = callOf(it);
+  btn.disabled = true; st.className = "status-line"; st.textContent = "Thinking...";
+  try {
+    const list = await sampleFn.json(`Write 3 to 5 acceptance criteria for this ticket. They must be testable, one sentence each, in plain English.
+Reply with only a JSON array of strings, for example ["A retry starts with a new session after a 3DS challenge fails."].
+
+Ticket: ${it.text}
+Raised in: ${c.title}
+What was said: ${it.quote ? it.quote[0] + ": " + it.quote[1] : "nothing recorded"}`, { modelTier: "quick" });
+    const lines = (Array.isArray(list) ? list : []).map(x => "- [ ] " + String(x).trim()).filter(x => x.length > 6);
+    if (!lines.length) throw { code: "invalid_json" };
+    const live = $("ld-" + it.id) || ta, next = live.value.replace(/## Acceptance criteria[\s\S]*$/, "## Acceptance criteria\n" + lines.join("\n"));
+    live.value = next;
+    if (ui.composer && ui.composer.id === "lin:" + it.id) { ui.composer.draft = ui.composer.draft || {}; ui.composer.draft["ld-" + it.id] = next; }
+    const st2 = $("lst-" + it.id) || st; st2.className = "status-line"; st2.textContent = "Acceptance criteria drafted by Claude. Edit before creating.";
+  } catch (err) {
+    const st2 = $("lst-" + it.id) || st; st2.className = "status-line err"; st2.textContent = errCopy(err && err.code, "criteria");
+    if (HIDE.includes(err && err.code)) { sampleFn = null; btn.remove(); $("pClaude").hidden = true; }
+  } finally { if (btn.isConnected) btn.disabled = false; }
+}
+
+const EXAMPLE = `You: Quick one today, three things on recurring investments.
+Daniel Kim: The scheduler job runs at 6am UTC, so Asian users get charged on the wrong local day. I'll move it to run per timezone by next Friday.
+Hana Sato: On mobile we still show the old fee. Can someone confirm the new fee is 0.5 percent for all plans?
+You: I'll confirm the fee with finance today and post it in product.
+Ana Ruiz: For the setup screen, we decided to show the next three charge dates instead of a calendar.
+Sam Carter: I need test accounts with weekly, monthly and quarterly plans. Can you create them, Daniel?
+Daniel Kim: Yes, I'll set those up tomorrow.
+You: Great. Let's also agree that failed charges retry once after 24 hours and then pause the plan.`;
+
+const nextWeekday = (from, wd) => { let d = addDays(from, 1); while (fromISO(d).getDay() !== wd) d = addDays(d, 1); return d; };
+// Keyword extraction: works without Claude. Speaker lines "Name: text"; promises become actions, agreements decisions, "?" questions.
+function extractByKeywords(text, date, me) {
+  const items = [], names = new Set();
+  const days = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
+  const ABBR = /\b(e\.g|i\.e|etc|vs|approx|Dr|Mr|Ms|Mrs)\./gi;
+  text.split(/\n+/).forEach(raw => {
+    // Strip leading timestamps such as [00:01:12] or 12:04.
+    const line = raw.replace(/^\s*[\[(]?\d{1,2}:\d{2}(:\d{2})?[\])]?\s*[-–]?\s*/, "");
+    const m = line.match(/^\s*([^:]{1,40}):\s*(.+)$/); if (!m) return;
+    const speaker = isMe(m[1], me) ? "You" : m[1].trim(); names.add(speaker);
+    m[2].replace(ABBR, x => x.slice(0, -1) + "․").split(/(?<=[.?!])\s+/).forEach(sent => {
+      const s = sent.trim().replace(/․/g, "."); if (s.length < 12) return;
+      let type = null, owner = null;
+      if (/\b(agreed|decided|we'll go with|let's go with|let's also agree|decision)\b/i.test(s)) { type = "decision"; owner = speaker; }
+      else if (/\?\s*$/.test(s)) { type = "question"; const who = [...names].find(n => n !== speaker && s.includes(n.split(" ")[0])); owner = who || null; }
+      else if (/\b(I'll|I will|I can(?!['’]t|not)|we'll|we will|will do|I'm going to)\b/i.test(s) && !/\b(can['’]t|won['’]t|cannot|will not)\b/i.test(s)) { type = "action"; owner = /\b(we'll|we will)\b/i.test(s) ? null : speaker; }
+      if (!type) return;
+      let due = null; const low = s.toLowerCase();
+      if (/\btoday\b/.test(low)) due = date; else if (/\btomorrow\b/.test(low)) due = addDays(date, 1);
+      else { const d = Object.keys(days).find(k => low.includes(k)); if (d) due = addDays(nextWeekday(date, days[d]), new RegExp("next " + d).test(low) ? 7 : 0); }
+      let txt = s.replace(/^(yes|great|ok|okay|so)[,.]?\s*/i, "").replace(/^(I'll|I will|I can|we'll|we will)\s+/i, "").replace(/\s*\b(today|tomorrow|by (next )?\w+day)\b\.?$/i, "").replace(/[.]$/, "");
+      txt = txt.charAt(0).toUpperCase() + txt.slice(1);
+      items.push({ type, text: txt, owner, due: type === "decision" ? null : due, quote: [speaker, s] });
+    });
+  });
+  return { items, attendees: [...names] };
+}
+
+async function extractWithClaude(text, date, me, ctl) {
+  const wd = fromISO(date).toLocaleDateString("en-GB", { weekday: "long" });
+  const prompt = `You turn a meeting transcript into a task list for a product manager.
+Meeting date: ${date} (${wd}). ${me ? `The product manager appears in the transcript as "${me}"; use "You" for them as an owner or speaker.` : `If a speaker is labelled "You", keep "You".`}
+
+Find every action item, decision and open question. Rules:
+- text: a short imperative for actions, a plain statement for decisions, the question itself for questions. At most 16 words.
+- owner: the person responsible, exactly as named in the transcript, or null.
+- due: a YYYY-MM-DD date resolved from the meeting date when one is said, otherwise null. "Thursday" = the coming Thursday after the meeting date, "next Thursday" = one week after that, "tomorrow" = the day after, "next week" = the Friday of the following week. Decisions have no due date.
+- quote: [speaker, the exact sentence that supports the item, at most 30 words].
+- Skip small talk. Do not invent items.
+
+Reply with only JSON in this shape:
+{"summary": "one sentence on what the call covered", "items": [{"type": "action", "text": "...", "owner": "Daniel Kim", "due": "YYYY-MM-DD", "quote": ["Daniel Kim", "..."]}]}
+
+Transcript:
+${text.slice(0, 60000)}`;
+  const out = await sampleFn.json(prompt, { signal: ctl.signal, onText: () => { $("pStatus").textContent = "Claude is writing the task list..."; } });
+  const items = (out && Array.isArray(out.items) ? out.items : []).filter(i => i && TYPES[i.type] && i.text).map(i => ({
+    type: i.type, text: String(i.text).trim(), owner: i.owner ? String(i.owner) : null,
+    due: i.type !== "decision" && validISO(i.due) ? i.due : null,
+    quote: Array.isArray(i.quote) && i.quote.length === 2 ? [String(i.quote[0]), String(i.quote[1])] : null
+  }));
+  return { items, summary: out && out.summary ? String(out.summary) : "" };
+}
+
+// ---------- Paste panel ----------
+let extractCtl = null;
+function openPaste(show) {
+  $("pastePanel").hidden = !show; $("pasteBtn").hidden = show;
+  if (show) { if (!$("pDate").value) $("pDate").value = today(); $("pStatus").textContent = ""; $("pStatus").className = "status-line"; $("pTitle").focus(); }
+}
+$("pasteBtn").addEventListener("click", () => openPaste(true));
+$("pCancel").addEventListener("click", () => { if (extractCtl) extractCtl.abort(); openPaste(false); });
+$("loadExample").addEventListener("click", () => { $("pTitle").value = "Recurring investments check-in"; $("pDate").value = today(); $("pMe").value = ""; $("pText").value = EXAMPLE; });
+
+function readForm() { return { title: $("pTitle").value.trim() || "Untitled call", date: validISO($("pDate").value) ? $("pDate").value : today(), me: $("pMe").value.trim(), text: $("pText").value }; }
+function addCall({ items, summary, attendees }, how, form) {
+  const { title, date, me } = form;
+  const id = "c" + Date.now().toString(36);
+  const who = new Set(attendees || []);
+  items.forEach(i => { if (isMe(i.owner, me)) i.owner = "You"; if (i.owner) who.add(i.owner); if (i.quote) { if (isMe(i.quote[0], me)) i.quote[0] = "You"; who.add(i.quote[0]); } });
+  state.calls.push({ id, title, date, attendees: [...who], channel: "#product", team: "PAY", summary: summary || "" });
+  items.forEach((i, n) => state.items.push({ id: id + "-" + n, callId: id, ...i }));
+  ui.call = id; ui.open = null; ui.composer = null; save();
+  $("pText").value = ""; $("pTitle").value = ""; openPaste(false); renderAll();
+  toast(`${items.length} ${items.length === 1 ? "item" : "items"} extracted ${how}. Review and edit them below.`);
+}
+function pasteInputOk() {
+  if (!$("pText").value.trim()) { $("pStatus").className = "status-line err"; $("pStatus").textContent = "Paste a transcript first."; $("pText").focus(); return false; }
+  return true;
+}
+$("pRules").addEventListener("click", () => {
+  if (!pasteInputOk()) return;
+  const form = readForm(), r = extractByKeywords(form.text, form.date, form.me);
+  if (!r.items.length) { $("pStatus").className = "status-line err"; $("pStatus").textContent = "No tasks found. Use \"Name: text\" lines, or try Claude."; return; }
+  addCall(r, "by keywords", form);
+});
+$("pClaude").addEventListener("click", async () => {
+  const btn = $("pClaude");
+  if (extractCtl) { extractCtl.abort(); return; }
+  if (!pasteInputOk()) return;
+  const form = readForm();
+  extractCtl = new AbortController();
+  btn.textContent = "Stop"; $("pRules").disabled = true; $("pStatus").className = "status-line";
+  $("pStatus").textContent = form.text.length > 60000 ? "Thinking... Only the first 60,000 characters are read. Paste the rest separately." : "Thinking...";
+  try {
+    const r = await extractWithClaude(form.text, form.date, form.me, extractCtl);
+    if (!r.items.length) { $("pStatus").textContent = "Claude found no tasks in this transcript."; return; }
+    addCall(r, "by Claude", form);
+  } catch (err) {
+    const code = err && err.code;
+    $("pStatus").className = "status-line" + (code === "cancelled" ? "" : " err"); $("pStatus").textContent = errCopy(code);
+    if (HIDE.includes(code)) { sampleFn = null; btn.hidden = true; }
+  } finally { extractCtl = null; btn.textContent = "Extract with Claude"; $("pRules").disabled = false; }
+});
+
+$("resetBtn").addEventListener("click", e => {
+  const b = e.currentTarget;
+  if (!b.dataset.confirm) { b.dataset.confirm = "1"; b.textContent = "Click again to reset everything"; setTimeout(() => { delete b.dataset.confirm; b.textContent = "Reset sample data"; }, 3000); return; }
+  delete b.dataset.confirm; b.textContent = "Reset sample data";
+  state = sampleState(); Object.assign(ui, { call: "all", owner: "all", open: null, composer: null }); save(); renderAll(); toast("Sample data restored with fresh dates");
+});
+
+// ---------- Toolbar ----------
+$("typeSeg").addEventListener("click", e => {
+  const b = e.target.closest("[data-type]"); if (!b) return;
+  ui.type = b.dataset.type; $("typeSeg").querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b)); renderList();
+});
+$("ownerSel").addEventListener("change", e => { ui.owner = e.target.value; renderList(); });
+$("search").addEventListener("input", e => { ui.q = e.target.value; renderList(); });
+$("showDone").addEventListener("change", e => { ui.showDone = e.target.checked; renderList(); });
+
+let toastTimer;
+function toast(msg, undo) {
+  let t = document.querySelector(".toast");
+  if (!t) { t = document.createElement("div"); t.className = "toast"; t.setAttribute("role", "status"); document.body.appendChild(t); }
+  t.textContent = msg; t.hidden = false;
+  if (undo) {
+    const b = document.createElement("button"); b.type = "button"; b.className = "toast-undo"; b.textContent = "Undo";
+    b.addEventListener("click", () => { undo(); t.hidden = true; }); t.append(" ", b);
+  }
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, undo ? 5000 : 3000);
+}
+
+renderAll(); save();
+// Claude features light up only where this page can ask Claude.
+if (window.claude && window.claude.use) window.claude.use("sample").then(fn => { if (fn) { sampleFn = fn; $("pClaude").hidden = false; renderList(); } }).catch(() => {});
+</script>
+

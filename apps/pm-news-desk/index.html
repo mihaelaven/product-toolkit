@@ -1,0 +1,386 @@
+<meta charset="utf-8">
+<title>PM News Desk</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Source+Sans+3:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a wire desk. Last-run line up top, a strip of run days (gaps show missed days), one filter bar, then today's items grouped by topic as one-line rows that expand. Sources sit behind one toggle. */
+:root {
+  --bg: #eef2f1;
+  --surface: #fbfcfc;
+  --sunk: #e3e9e8;
+  --ink: #142320;
+  --muted: #586b67;
+  --line: #d3dcda;
+  --accent: #0d6e66;
+  --star: #b7791f;
+  --warn: #b5482f;
+  --t-voices: #0d6e66;
+  --t-ai: #5a4fc4;
+  --t-tech: #2c6db3;
+  --t-launch: #a8611a;
+  --t-teardown: #8a3f7c;
+  --t-jobs: #4f7a2b;
+  --font-display: "Bricolage Grotesque", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "Source Sans 3", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-data: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1514; --surface: #131e1c; --sunk: #1a2826; --ink: #e2ecea; --muted: #93a7a3; --line: #263734;
+    --accent: #4fc4b8; --star: #e5b45a; --warn: #ec7a5f;
+    --t-voices: #4fc4b8; --t-ai: #a59bf0; --t-tech: #7fb1ec; --t-launch: #e3a35c; --t-teardown: #d58ac7; --t-jobs: #9ccc6e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1514; --surface: #131e1c; --sunk: #1a2826; --ink: #e2ecea; --muted: #93a7a3; --line: #263734;
+  --accent: #4fc4b8; --star: #e5b45a; --warn: #ec7a5f;
+  --t-voices: #4fc4b8; --t-ai: #a59bf0; --t-tech: #7fb1ec; --t-launch: #e3a35c; --t-teardown: #d58ac7; --t-jobs: #9ccc6e;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 48px;
+}
+h1, h2 { font-family: var(--font-display); margin: 0; text-wrap: balance; }
+h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.015em; }
+h2 { font-size: 15px; font-weight: 600; }
+.eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.09em; color: var(--muted); font-weight: 600; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+a { color: inherit; }
+.mono { font-family: var(--font-data); font-size: 12px; font-variant-numeric: tabular-nums; }
+
+.page { max-width: 1040px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+.top { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: end; justify-content: space-between; }
+.run-line { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; color: var(--muted); }
+.run-line .stale { color: var(--warn); font-weight: 600; }
+#runLine { display: inline-flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 3px 10px; font-size: 13px; font-weight: 500; }
+.btn:hover { border-color: var(--accent); }
+.btn[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); }
+.link-btn { background: none; border: 0; color: var(--muted); font-size: 13px; padding: 2px 0; text-decoration: underline; text-underline-offset: 2px; }
+.link-btn:hover { color: var(--ink); }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 8px; min-width: 0; }
+.sources { font-size: 13.5px; }
+.sources p { margin: 0; overflow-wrap: anywhere; }
+.sources .bad { color: var(--warn); }
+.banner { border-left: 3px solid var(--warn); }
+
+.days { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: thin; }
+.day { flex: 0 0 auto; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 5px 10px; display: grid; gap: 1px; text-align: left; min-width: 74px; }
+.day .d { font-weight: 600; font-size: 13px; }
+.day .c { font-family: var(--font-data); font-size: 11px; color: var(--muted); }
+.day .c b { color: var(--accent); font-weight: 500; }
+.day[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.day.missed { background: transparent; border-style: dashed; cursor: default; }
+.day.missed .d { color: var(--muted); font-weight: 500; }
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--surface); }
+.seg button { border: 0; background: transparent; padding: 3px 10px; font-size: 13px; color: var(--muted); display: inline-flex; gap: 5px; align-items: center; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--sunk); color: var(--ink); font-weight: 600; }
+.seg .n { font-family: var(--font-data); font-size: 11px; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--c, var(--muted)); flex: 0 0 auto; }
+#q { flex: 1 1 180px; min-width: 0; border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 3px 9px; font-size: 13.5px; }
+.spacer { flex: 1 1 auto; }
+
+.group { display: grid; }
+.group-h { display: flex; gap: 7px; align-items: center; padding: 12px 0 5px; }
+.group-h .n { font-family: var(--font-data); font-size: 11px; color: var(--muted); }
+.item { border-top: 1px solid var(--line); }
+.row { display: grid; grid-template-columns: 22px minmax(0, 1fr) 70px 26px 24px; gap: 8px; align-items: center; padding: 6px 0; }
+.rd { width: 22px; height: 22px; border: 0; background: none; padding: 0; display: grid; place-items: center; }
+.rd::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); }
+.rd[aria-pressed="true"]::before { background: transparent; box-shadow: inset 0 0 0 1.5px var(--line); }
+.main { min-width: 0; display: flex; gap: 8px; align-items: baseline; overflow: hidden; white-space: nowrap; }
+.main a { font-weight: 600; text-decoration: none; overflow: hidden; text-overflow: ellipsis; flex: 0 1 auto; min-width: 0; }
+.main a:hover { text-decoration: underline; text-underline-offset: 2px; color: var(--accent); }
+.main .by { color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; flex: 0 10 auto; min-width: 0; }
+.item.read .main a { font-weight: 500; color: var(--muted); }
+.time { color: var(--muted); text-align: right; white-space: nowrap; }
+.fav { border: 0; background: none; padding: 0; width: 26px; height: 24px; font-size: 16px; line-height: 1; color: var(--line); }
+.fav[aria-pressed="true"] { color: var(--star); }
+.fav:hover { color: var(--star); }
+.exp { border: 1px solid var(--line); background: var(--sunk); border-radius: 5px; width: 24px; height: 22px; padding: 0; font-size: 10px; color: var(--muted); }
+.exp[aria-expanded="true"] { background: var(--surface); border-color: var(--accent); color: var(--accent); }
+.detail { padding: 0 34px 12px 30px; display: grid; gap: 5px; max-width: 76ch; }
+.detail p { margin: 0; overflow-wrap: anywhere; }
+.detail .why { border-left: 2px solid var(--accent); padding-left: 9px; }
+.detail .meta { color: var(--muted); font-size: 13px; }
+@media (max-width: 640px) {
+  .row { grid-template-columns: 22px minmax(0, 1fr) 26px 24px; grid-template-areas: "r m f x" ". t t t"; row-gap: 0; }
+  .row > .rd { grid-area: r; } .row > .main { grid-area: m; white-space: normal; flex-direction: column; gap: 0; }
+  .row > .time { grid-area: t; text-align: left; } .row > .fav { grid-area: f; } .row > .exp { grid-area: x; }
+  .main a { white-space: normal; }
+  .detail { padding: 0 0 12px 30px; }
+}
+.empty { padding: 22px 0; color: var(--muted); margin: 0; display: grid; gap: 4px; }
+.empty b { color: var(--ink); font-weight: 600; }
+@media (prefers-reduced-motion: no-preference) { .item { transition: background-color 0.15s; } }
+</style>
+
+<div class="page">
+  <header class="top">
+    <div>
+      <div class="eyebrow">Last 24 hours for product managers</div>
+      <h1>PM News Desk</h1>
+    </div>
+    <div class="run-line">
+      <span id="runLine" role="status">Loading the digest…</span>
+      <button type="button" class="btn" id="srcBtn" aria-expanded="false" aria-controls="sources" hidden>Sources</button>
+    </div>
+  </header>
+
+  <section class="panel sources" id="sources" hidden></section>
+  <div class="panel banner" id="banner" role="alert" hidden></div>
+
+  <nav class="days" id="days" aria-label="Run days"></nav>
+
+  <div class="toolbar">
+    <div class="seg" id="topicSeg" role="group" aria-label="Topic"></div>
+    <div class="seg" id="viewSeg" role="group" aria-label="Show">
+      <button type="button" data-v="all" aria-pressed="true">All</button>
+      <button type="button" data-v="unread" aria-pressed="false">Unread <span class="n" id="nUnread"></span></button>
+      <button type="button" data-v="fav" aria-pressed="false">★ Saved <span class="n" id="nFav"></span></button>
+    </div>
+    <input type="search" id="q" placeholder="Filter by title, source or author" aria-label="Filter items">
+    <button type="button" class="link-btn" id="markDay" hidden>Mark day read</button>
+  </div>
+
+  <main id="list"></main>
+</div>
+
+<script>
+const TOPICS = [
+  { name: "PM voices", c: "--t-voices" },
+  { name: "AI models and tools", c: "--t-ai" },
+  { name: "Tech news", c: "--t-tech" },
+  { name: "Launches", c: "--t-launch" },
+  { name: "Teardowns", c: "--t-teardown" },
+  { name: "Job market", c: "--t-jobs" },
+];
+const topicColor = n => (TOPICS.find(t => t.name === n) || { c: "--muted" }).c;
+
+const S = { runs: [], items: [], marks: {}, day: null, topic: "All", view: "all", q: "", open: new Set(), uid: null, db: null, loaded: false };
+const $ = id => document.getElementById(id);
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+const safeUrl = u => { try { const x = new URL(u); return /^https?:$/.test(x.protocol) ? x.href : null; } catch { return null; } };
+// A bare YYYY-MM-DD means the source gave a date with no time.
+const dateOnly = iso => /^\d{4}-\d{2}-\d{2}$/.test(String(iso));
+const dayKey = iso => { if (dateOnly(iso)) return iso; const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleDateString("en-CA"); };
+const fmtDay = key => new Date(key + "T12:00:00").toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
+const fmtTime = iso => { if (dateOnly(iso)) return "date only"; const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }); };
+const fmtWhen = iso => { if (dateOnly(iso)) return fmtDay(iso) + " (time not stated)"; const d = new Date(iso); return isNaN(d) ? "unknown" : d.toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); };
+const mark = id => S.marks[id] || {};
+
+try { const p = JSON.parse(localStorage.getItem("pmnd-prefs") || "{}"); if (p.topic) S.topic = p.topic; if (p.view) S.view = p.view; } catch {}
+const savePrefs = () => { try { localStorage.setItem("pmnd-prefs", JSON.stringify({ topic: S.topic, view: S.view })); } catch {} };
+
+function runForDay(key) { return S.runs.filter(r => dayKey(r.startedAt) === key); }
+function itemsForDay(key) { const ids = new Set(runForDay(key).map(r => r.id)); return S.items.filter(i => ids.has(i.runId)); }
+
+function renderRunLine() {
+  const last = S.runs[0];
+  const line = $("runLine");
+  line.replaceChildren();
+  if (!S.loaded) { line.textContent = "Loading the digest…"; return; }
+  if (!last) { line.textContent = "No runs yet"; $("srcBtn").hidden = true; return; }
+  const hours = (Date.now() - new Date(last.finishedAt || last.startedAt)) / 36e5;
+  const when = el("span", hours > 26 ? "stale" : "", "Last run " + fmtWhen(last.finishedAt || last.startedAt) + (hours > 26 ? " (over a day ago)" : ""));
+  const reached = (last.reached || []).length, blocked = (last.blocked || []).length;
+  line.append(when, el("span", "mono", (last.itemCount ?? 0) + " items · " + reached + " of " + (reached + blocked) + " sources reached"));
+  $("srcBtn").hidden = false;
+}
+
+function renderSources() {
+  const box = $("sources");
+  const r = S.runs.find(x => dayKey(x.startedAt) === S.day) || S.runs[0];
+  box.replaceChildren();
+  if (!r) return;
+  box.append(el("div", "eyebrow", "Sources for the run of " + fmtWhen(r.startedAt)));
+  const w = el("p", "mono", "Window: " + fmtWhen(r.windowFrom) + " to " + fmtWhen(r.windowTo));
+  const ok = el("p"); ok.append(el("b", "", "Reached: "), document.createTextNode((r.reached || []).join(", ") || "none"));
+  const bad = el("p", "bad"); bad.append(el("b", "", "Blocked: "), document.createTextNode((r.blocked || []).map(b => b.source + " (" + b.reason + ")").join(", ") || "none"));
+  box.append(w, ok, bad);
+  if (r.notes) box.append(el("p", "", r.notes));
+}
+
+function renderDays() {
+  const nav = $("days");
+  nav.replaceChildren();
+  if (!S.runs.length) return;
+  const keys = [...new Set(S.runs.map(r => dayKey(r.startedAt)))].sort();
+  const first = new Date(keys[0] + "T12:00:00"), today = new Date();
+  const all = [];
+  for (let d = new Date(first); dayKey(d) <= dayKey(today); d.setDate(d.getDate() + 1)) all.push(dayKey(d));
+  all.reverse().slice(0, 30).forEach(k => {
+    const has = keys.includes(k);
+    const b = el("button", "day" + (has ? "" : " missed"));
+    b.type = "button";
+    b.append(el("span", "d", k === dayKey(today) ? "Today" : fmtDay(k)));
+    if (has) {
+      const its = itemsForDay(k), unread = its.filter(i => !mark(i.id).read).length;
+      const c = el("span", "c", its.length + " items ");
+      if (unread) c.append(el("b", "", "· " + unread + " new"));
+      b.append(c);
+      b.setAttribute("aria-pressed", String(k === S.day));
+      b.onclick = () => { S.day = k; S.open.clear(); render(); };
+    } else {
+      b.append(el("span", "c", k === dayKey(today) ? "no run yet" : "no run"));
+      b.disabled = true;
+      b.title = "The agent did not run this day";
+    }
+    nav.append(b);
+  });
+}
+
+function pool() { return S.view === "fav" ? S.items.filter(i => mark(i.id).fav) : itemsForDay(S.day); }
+
+function renderToolbar(base) {
+  const seg = $("topicSeg");
+  seg.replaceChildren();
+  ["All", ...TOPICS.map(t => t.name)].forEach(name => {
+    const n = name === "All" ? base.length : base.filter(i => i.topic === name).length;
+    if (name !== "All" && !n && S.topic !== name) return;
+    const b = el("button");
+    b.type = "button";
+    if (name !== "All") { const d = el("span", "dot"); d.style.setProperty("--c", "var(" + topicColor(name) + ")"); b.append(d); }
+    b.append(document.createTextNode(name), el("span", "n", String(n)));
+    b.setAttribute("aria-pressed", String(S.topic === name));
+    b.onclick = () => { S.topic = name; savePrefs(); render(); };
+    seg.append(b);
+  });
+  const day = itemsForDay(S.day);
+  $("nUnread").textContent = day.filter(i => !mark(i.id).read).length || "";
+  $("nFav").textContent = S.items.filter(i => mark(i.id).fav).length || "";
+  [...$("viewSeg").children].forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === S.view)));
+  $("markDay").hidden = !S.uid || S.view === "fav" || !day.some(i => !mark(i.id).read);
+}
+
+function itemRow(i) {
+  const m = mark(i.id), url = safeUrl(i.url), open = S.open.has(i.id);
+  const wrap = el("article", "item" + (m.read ? " read" : ""));
+  const row = el("div", "row");
+  const rd = el("button", "rd");
+  rd.type = "button";
+  rd.setAttribute("aria-pressed", String(!!m.read));
+  rd.setAttribute("aria-label", m.read ? "Mark unread" : "Mark read");
+  rd.title = m.read ? "Read. Click to mark unread" : "Unread. Click to mark read";
+  rd.disabled = !S.uid;
+  rd.onclick = () => setMark(i.id, { read: !m.read });
+  const main = el("div", "main");
+  const a = el("a", "", i.title || "(untitled)");
+  if (url) { a.href = url; a.target = "_blank"; a.rel = "noopener noreferrer"; a.onclick = () => { if (!mark(i.id).read) setMark(i.id, { read: true }); }; }
+  main.append(a, el("span", "by", [i.source, i.author && i.author !== i.source ? i.author : ""].filter(Boolean).join(" · ")));
+  const t = el("span", "time mono", S.view === "fav" ? fmtDay(dayKey(i.publishedAt)) : fmtTime(i.publishedAt));
+  t.title = "Published " + fmtWhen(i.publishedAt);
+  const fav = el("button", "fav", "★");
+  fav.type = "button";
+  fav.setAttribute("aria-pressed", String(!!m.fav));
+  fav.setAttribute("aria-label", m.fav ? "Remove from saved" : "Save");
+  fav.disabled = !S.uid;
+  fav.onclick = () => setMark(i.id, { fav: !m.fav });
+  const ex = el("button", "exp", open ? "▲" : "▼");
+  ex.type = "button";
+  ex.setAttribute("aria-expanded", String(open));
+  ex.setAttribute("aria-label", "Show summary");
+  ex.onclick = () => { open ? S.open.delete(i.id) : S.open.add(i.id); renderList(); };
+  row.append(rd, main, t, fav, ex);
+  wrap.append(row);
+  if (open) {
+    const d = el("div", "detail");
+    if (i.summary) d.append(el("p", "", i.summary));
+    if (i.whyItMatters) { const w = el("p", "why"); w.append(el("b", "", "Why it matters: "), document.createTextNode(i.whyItMatters)); d.append(w); }
+    d.append(el("p", "meta", "Published " + fmtWhen(i.publishedAt) + (i.notes ? " · " + i.notes : "")));
+    wrap.append(d);
+  }
+  return wrap;
+}
+
+function renderList() {
+  const list = $("list");
+  list.replaceChildren();
+  if (!S.loaded) { list.append(emptyState("Loading items…", "")); return; }
+  if (!S.runs.length) {
+    list.append(emptyState("No digest yet.", "Run the pm-news-digest agent with this page's link as its digest store. Each run adds the last 24 hours of items here, grouped by topic."));
+    return;
+  }
+  const base = pool();
+  renderToolbar(base);
+  const q = S.q.trim().toLowerCase();
+  let items = base.filter(i => S.topic === "All" || i.topic === S.topic);
+  if (S.view === "unread") items = items.filter(i => !mark(i.id).read);
+  if (q) items = items.filter(i => [i.title, i.source, i.author].join(" ").toLowerCase().includes(q));
+  if (!items.length) {
+    const msg = S.view === "fav" ? "Nothing saved yet. Star an item to keep it here across days."
+      : S.view === "unread" ? "All caught up for this day." : base.length ? "No items match these filters." : "This run found no items inside its 24-hour window. Check Sources for what was reached.";
+    list.append(emptyState(msg, ""));
+    return;
+  }
+  TOPICS.map(t => t.name).concat([...new Set(items.map(i => i.topic))].filter(n => !TOPICS.some(t => t.name === n))).forEach(name => {
+    const its = items.filter(i => i.topic === name).sort((a, b) => String(b.publishedAt).localeCompare(String(a.publishedAt)));
+    if (!its.length) return;
+    const g = el("section", "group");
+    const h = el("div", "group-h");
+    const d = el("span", "dot"); d.style.setProperty("--c", "var(" + topicColor(name) + ")");
+    h.append(d, el("h2", "", name), el("span", "n", String(its.length)));
+    g.append(h, ...its.map(itemRow));
+    list.append(g);
+  });
+}
+
+function emptyState(title, body) { const p = el("div", "empty"); p.append(el("b", "", title)); if (body) p.append(el("span", "", body)); return p; }
+
+function render() {
+  if (S.runs.length && (!S.day || !runForDay(S.day).length)) S.day = dayKey(S.runs[0].startedAt);
+  renderRunLine(); renderDays(); renderSources(); renderList();
+  if (!S.runs.length) { $("topicSeg").replaceChildren(); $("markDay").hidden = true; }
+}
+
+// One write at a time per mark document.
+const pending = new Map();
+async function setMark(id, patch) {
+  if (!S.db || !S.uid) return;
+  const next = { ...mark(id), ...patch, at: new Date().toISOString() };
+  S.marks[id] = next;
+  render();
+  const prev = pending.get(id) || Promise.resolve();
+  const p = prev.then(() => S.db.doc("data/users/" + S.uid + "/" + id).set(next)).catch(e => showBanner("Could not save that change (" + (e && e.code || "error") + "). It shows here but will reset on reload."));
+  pending.set(id, p);
+}
+function showBanner(text) { const b = $("banner"); b.textContent = text; b.hidden = false; }
+
+$("srcBtn").onclick = () => { const open = $("sources").hidden; $("sources").hidden = !open; $("srcBtn").setAttribute("aria-expanded", String(open)); };
+$("viewSeg").onclick = e => { const b = e.target.closest("button"); if (!b) return; S.view = b.dataset.v; savePrefs(); renderList(); };
+$("q").oninput = e => { S.q = e.target.value; renderList(); };
+$("markDay").onclick = async () => { for (const i of itemsForDay(S.day)) if (!mark(i.id).read) await setMark(i.id, { read: true }); };
+
+render();
+
+(async () => {
+  const use = name => (window.claude && window.claude.use ? window.claude.use(name) : Promise.resolve(null));
+  const [db, user] = await Promise.all([use("db"), use("user")]);
+  if (!db) { S.loaded = true; render(); showBanner("The digest store is not available in this view. Open the page on claude.ai while signed in."); $("runLine").textContent = "Store unavailable"; return; }
+  S.db = db;
+  S.uid = user ? await user.id() : null;
+  const timer = setTimeout(() => { if (!S.loaded) showBanner("The digest store has not answered yet. Items will appear when it does."); }, 10000);
+  let gotRuns = false, gotItems = false;
+  const done = () => { if (gotRuns && gotItems && !S.loaded) { S.loaded = true; clearTimeout(timer); $("banner").hidden = true; } render(); };
+  const fail = e => { clearTimeout(timer); S.loaded = true; render(); showBanner("Could not read the digest (" + (e && e.code || "error") + ")."); };
+  db.collection("runs").orderBy("startedAt", "desc").limit(60).onSnapshot(s => { S.runs = s.docs.map(d => ({ id: d.id, ...d.data() })); if (!s.metadata.fromCache) gotRuns = true; done(); }, fail);
+  db.collection("items").orderBy("publishedAt", "desc").limit(1000).onSnapshot(s => { S.items = s.docs.map(d => ({ id: d.id, ...d.data() })); if (!s.metadata.fromCache) gotItems = true; done(); }, fail);
+  if (S.uid) {
+    db.collection("data/users/" + S.uid).onSnapshot(s => { const m = {}; s.docs.forEach(d => { m[d.id] = d.data(); }); S.marks = m; render(); }, () => {});
+  }
+})();
+</script>
+

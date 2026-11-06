@@ -1,0 +1,867 @@
+<meta charset="utf-8">
+<title>Capacity Timeline Planner</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: an editing rail on the left (projects and settings), the reflowing plan on the right. */
+:root {
+  --bg: #f3f5f8;
+  --surface: #ffffff;
+  --sunk: #eaeef3;
+  --ink: #18212c;
+  --muted: #5c6878;
+  --line: #d9dfe7;
+  --accent: #2b59c3;
+  --design: #a3509a;
+  --build: #2f6fd1;
+  --qa: #c98419;
+  --good: #2b7f52;
+  --bad: #c0412c;
+  --idle: #c9d1dc;
+  --linear: #5e6ad2;
+  --font-display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --cell: 26px;
+  --label: 220px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141b; --surface: #161e28; --sunk: #1d2633; --ink: #e5eaf1; --muted: #95a2b3; --line: #2a3544;
+    --accent: #7fa3ff; --design: #d07fc4; --build: #5d95ef; --qa: #e3a748; --good: #53bd84; --bad: #ef6a52; --idle: #3a4656; --linear: #8f98f0;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141b; --surface: #161e28; --sunk: #1d2633; --ink: #e5eaf1; --muted: #95a2b3; --line: #2a3544;
+  --accent: #7fa3ff; --design: #d07fc4; --build: #5d95ef; --qa: #e3a748; --good: #53bd84; --bad: #ef6a52; --idle: #3a4656; --linear: #8f98f0;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 14px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 40px;
+}
+h1, h2, h3 { font-family: var(--font-display); font-weight: 600; margin: 0; text-wrap: balance; }
+h1 { font-size: 26px; letter-spacing: -0.01em; }
+h2 { font-size: 17px; }
+.eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.num { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+input[type="number"], input[type="date"], select { border: 1px solid var(--line); background: var(--sunk); border-radius: 5px; padding: 5px 6px; min-width: 0; }
+input[type="number"] { font-family: var(--font-data); font-size: 13px; }
+
+.page { max-width: 1480px; margin: 0 auto; display: grid; gap: 18px; }
+.top { display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: end; justify-content: space-between; }
+.chip-sample { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 8px; border: 1px dashed var(--muted); color: var(--muted); border-radius: 999px; vertical-align: middle; margin-left: 8px; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 7px 12px; font-weight: 500; }
+.btn:hover { border-color: var(--accent); }
+.btn:disabled { opacity: 0.6; cursor: progress; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.btn.warn { border-color: var(--bad); color: var(--bad); }
+.btn.small { padding: 4px 9px; font-size: 12.5px; }
+.btn.tiny { padding: 2px 8px; font-size: 11.5px; border-radius: 5px; }
+
+.golive { display: grid; gap: 3px; }
+.golive label { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.golive input { font-family: var(--font-data); font-size: 15px; padding: 6px 8px; }
+.check { display: flex; gap: 8px; align-items: flex-start; }
+.check input { margin-top: 3px; width: 16px; height: 16px; accent-color: var(--accent); }
+.check b { display: block; font-weight: 600; }
+.check span { font-size: 12.5px; color: var(--muted); }
+
+.layout { display: grid; grid-template-columns: 440px minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 960px) { .layout { grid-template-columns: minmax(0, 1fr); } .main { order: -1; } }
+.rail { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+@media (min-width: 961px) { .rail { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); max-height: calc(100vh - 24px); display: flex; flex-direction: column; } .rail-body { overflow-y: auto; } }
+.tabs { display: flex; border-bottom: 1px solid var(--line); }
+.tabs button { flex: 1; background: none; border: 0; padding: 12px; font-weight: 600; color: var(--muted); border-bottom: 2px solid transparent; }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.rail-body { padding: 14px; display: grid; gap: 12px; }
+.hint { color: var(--muted); font-size: 12.5px; margin: 0; }
+
+/* Project list: one line per project, one effort column per phase; details open below a row. */
+.plist { display: grid; }
+.prow { display: grid; grid-template-columns: 46px minmax(0, 1fr) repeat(5, 34px) 24px; gap: 3px; align-items: center; padding: 5px 0; border-top: 1px solid var(--line); }
+.prow.head { border-top: 0; padding-top: 0; font-size: 10.5px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+.prow.head span { text-align: center; } .prow.head span.l { text-align: left; padding-left: 6px; }
+.pitem.off .prow { opacity: 0.5; }
+.prow input[type="number"] { width: 100%; padding: 4px 2px; text-align: center; }
+.moves { display: flex; gap: 2px; }
+.icon-btn { border: 1px solid var(--line); background: var(--sunk); border-radius: 5px; width: 22px; height: 24px; display: inline-grid; place-items: center; padding: 0; font-size: 10px; line-height: 1; }
+.icon-btn:disabled { opacity: 0.35; cursor: default; }
+.icon-btn[aria-expanded="true"] { background: var(--surface); border-color: var(--accent); }
+.name-in { width: 100%; min-width: 0; border: 1px solid transparent; background: transparent; border-radius: 5px; padding: 4px 6px; font-weight: 600; text-overflow: ellipsis; }
+.name-in:hover, .name-in:focus { border-color: var(--line); background: var(--sunk); }
+.pdetail { display: grid; gap: 8px; padding: 8px 0 10px 50px; }
+.arow { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 6px; align-items: start; }
+.arow .rl { font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: 0.04em; padding-top: 3px; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.chip { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 1px 8px; font-size: 12px; color: var(--muted); }
+.chip[aria-pressed="true"] { color: var(--ink); font-weight: 600; border-color: var(--rc); background: color-mix(in srgb, var(--rc) 16%, var(--surface)); }
+.chip.need { border-color: var(--bad); }
+.auto { font-family: var(--font-data); font-size: 11px; color: var(--qa); }
+.proj-foot { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.field { display: grid; gap: 2px; min-width: 0; }
+.field label { font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 0.04em; }
+.field input, .field select { width: 100%; }
+.toggle { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); white-space: nowrap; }
+.row-btns { display: flex; justify-content: space-between; align-items: center; }
+.link-btn { background: none; border: 0; color: var(--muted); font-size: 12px; padding: 2px 0; text-decoration: underline; text-underline-offset: 2px; }
+.link-btn:hover { color: var(--bad); }
+.settings { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.sep { border: 0; border-top: 1px solid var(--line); margin: 4px 0; }
+
+.main { display: grid; gap: 16px; min-width: 0; }
+/* Tiles shrink to their content; equal columns make every tile the width of the widest one. */
+.stats { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 10px; width: max-content; max-width: 100%; }
+@media (max-width: 680px) { .stats { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); width: auto; } :root { --label: 160px; } }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; display: grid; gap: 2px; min-width: 0; align-content: start; }
+.stat .v { font-family: var(--font-display); font-size: 24px; font-weight: 600; line-height: 1.15; overflow-wrap: anywhere; }
+.stat .s { font-size: 12px; color: var(--muted); }
+.v.good { color: var(--good); } .v.bad { color: var(--bad); }
+.v small { font-size: 15px; color: var(--muted); }
+.bn { font-family: var(--font-display); font-size: 14px; font-weight: 600; line-height: 1.3; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: grid; gap: 10px; min-width: 0; }
+.panel-head { display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: space-between; align-items: baseline; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.legend i { width: 12px; height: 10px; border-radius: 2px; display: inline-block; }
+.scroll { overflow-x: auto; }
+.grid { display: grid; grid-template-columns: var(--label) repeat(var(--weeks), var(--cell)); min-width: max-content; }
+.gh { font-family: var(--font-data); font-size: 10.5px; color: var(--muted); text-align: center; padding-bottom: 4px; position: relative; height: 32px; display: flex; flex-direction: column; justify-content: flex-end; }
+.gh b { font-family: var(--font-body); font-weight: 600; font-size: 10.5px; color: var(--ink); text-align: left; position: absolute; top: 0; left: 2px; white-space: nowrap; }
+.hol { background-image: repeating-linear-gradient(135deg, transparent 0 4px, color-mix(in srgb, var(--muted) 14%, transparent) 4px 5px); }
+.gl { box-shadow: inset -2px 0 0 var(--accent); }
+.lbl { padding: 6px 10px 6px 0; display: grid; gap: 2px; min-width: 0; border-top: 1px solid var(--line); }
+.lbl .n { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.status { font-size: 11.5px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.pill { font-weight: 600; padding: 1px 7px; border-radius: 999px; font-size: 11px; }
+.pill.good { background: color-mix(in srgb, var(--good) 15%, transparent); color: var(--good); }
+.pill.bad { background: color-mix(in srgb, var(--bad) 15%, transparent); color: var(--bad); }
+.pill.mute { background: var(--sunk); color: var(--muted); }
+.delta { font-family: var(--font-data); font-size: 11px; color: var(--muted); }
+.delta.up { color: var(--bad); } .delta.down { color: var(--good); }
+.cell { border-top: 1px solid var(--line); border-left: 1px solid color-mix(in srgb, var(--line) 50%, transparent); position: relative; display: grid; align-items: center; padding: 9px 1px; }
+.bar { height: 100%; min-height: 18px; border-radius: 2px; }
+.bar.idle { background-image: repeating-linear-gradient(135deg, var(--idle) 0 3px, transparent 3px 6px); }
+.bar.wait { border: 1px dashed var(--idle); background: none; }
+.target { position: absolute; top: 3px; bottom: 3px; right: -1px; width: 0; border-right: 2px solid var(--ink); z-index: 2; }
+.target::after { content: ""; position: absolute; top: -3px; right: -5px; width: 8px; height: 8px; background: var(--ink); transform: rotate(45deg); }
+.swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; flex: none; }
+
+.psep { display: flex; align-items: baseline; gap: 8px; padding: 10px 0 4px; border-top: 1px solid var(--line); font-family: var(--font-display); font-weight: 600; font-size: 14px; }
+.prow.head + .psep { border-top: 0; }
+.psep span { font-family: var(--font-body); font-weight: 400; font-size: 12px; color: var(--muted); }
+.psep + .pitem .prow { border-top: 0; }
+.gsep { grid-column: 1 / -1; padding: 10px 0 4px; border-top: 1px solid var(--line); font-family: var(--font-display); font-weight: 600; font-size: 13px; display: flex; gap: 8px; align-items: baseline; }
+.gsep span { font-family: var(--font-body); font-weight: 400; font-size: 12px; color: var(--muted); }
+.summary { gap: 8px; }
+.summary-head { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.summary p { margin: 0; max-width: 90ch; }
+.recs { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.recs li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 6px 10px; background: var(--sunk); border-radius: 6px; }
+.recs .eff { color: var(--muted); font-size: 12.5px; }
+.offlist { display: grid; gap: 6px; }
+.off-grid { display: grid; grid-template-columns: repeat(var(--months), minmax(0, 1fr)); gap: 4px; }
+.off-head { font-size: 10.5px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); text-align: center; position: sticky; top: 0; background: var(--surface); padding-block: 2px; z-index: 1; }
+.off-grp { display: flex; align-items: center; gap: 6px; padding-top: 6px; }
+.off-person { border-top: 1px solid var(--line); padding-top: 6px; display: grid; gap: 4px; }
+.off-top { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: center; }
+.off-top .meta { font-family: var(--font-data); font-size: 11px; color: var(--muted); white-space: nowrap; }
+.offlist .pname { width: 100%; min-width: 0; border: 1px solid transparent; background: transparent; border-radius: 5px; padding: 3px 6px; font-weight: 600; }
+.offlist .pname:hover, .offlist .pname:focus { border-color: var(--line); background: var(--sunk); }
+.off-cell { display: grid; text-align: center; }
+.off-cell input { width: 100%; text-align: center; padding: 4px 2px; }
+.off-cell input.has { border-color: var(--qa); background: color-mix(in srgb, var(--qa) 12%, var(--sunk)); }
+.offlist .use { font-family: var(--font-data); font-size: 10.5px; color: var(--muted); margin-top: 1px; }
+.offlist .use.full { color: var(--ink); font-weight: 500; }
+.offlist .use.short { color: var(--bad); font-weight: 500; }
+.addp { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.addp input[type="text"] { border: 1px solid var(--line); background: var(--sunk); border-radius: 5px; padding: 5px 8px; min-width: 0; flex: 1 1 120px; }
+
+.toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 6px; font-weight: 500; z-index: 20; max-width: calc(100% - 32px); }
+textarea.copy-fallback { width: 100%; min-height: 160px; font-family: var(--font-data); font-size: 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--sunk); padding: 8px; }
+@media (prefers-reduced-motion: no-preference) { .bar { transition: background 0.2s; } }
+</style>
+
+<div class="page">
+  <header class="top">
+    <div>
+      <div class="eyebrow">Delivery planning</div>
+      <h1>Capacity Timeline Planner <span class="chip-sample">Sample team</span></h1>
+    </div>
+    <div class="actions">
+      <button class="btn tiny" id="baselineBtn" type="button">Save as baseline</button>
+      <button class="btn primary tiny" id="copyBtn" type="button">Copy status update</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="rail" aria-label="Plan inputs">
+      <div class="tabs" role="tablist">
+        <button type="button" role="tab" id="tab-projects" aria-selected="true">Projects</button>
+        <button type="button" role="tab" id="tab-settings" aria-selected="false">Settings</button>
+      </div>
+      <div class="rail-body" id="pane-projects">
+        <p class="hint">Effort in person-weeks per phase. Higher rows get people's time first. Open a row to assign people and set dates.</p>
+        <div id="projList" class="plist"></div>
+        <button class="btn" id="addProj" type="button">Add project</button>
+      </div>
+      <div class="rail-body" id="pane-settings" hidden>
+        <div class="golive"><label for="goLive">Desired go-live</label><input type="date" id="goLive"></div>
+        <label class="check" for="autoTests"><input type="checkbox" id="autoTests"><span><b>Write automated tests</b><span id="autoHint">QA also writes automated tests</span></span></label>
+        <hr class="sep">
+        <div class="settings">
+          <div class="field"><label for="setStart">Plan starts (Monday)</label><input type="date" id="setStart"></div>
+          <div class="field"><label for="setHorizon">Weeks shown</label><input type="number" id="setHorizon" min="8" max="52" step="1"></div>
+          <div class="field"><label for="setFocus">Focus time %</label><input type="number" id="setFocus" min="10" max="100" step="5"></div>
+          <div class="field"><label for="setAuto">Automation effort, % of QA</label><input type="number" id="setAuto" min="0" max="200" step="5"></div>
+        </div>
+        <p class="hint">Focus time covers meetings, support rotations and interruptions. Automation effort is added to each project's QA estimate when automated tests are switched on.</p>
+        <hr class="sep">
+        <h2 id="offTitle" style="font-size:15px">Team and time off</h2>
+        <p class="hint">Days off per month. The number under each box is the share of that person's available time the plan uses that month. Red means work is queued for them.</p>
+        <div class="offlist" id="offTable"></div>
+        <div class="addp">
+          <input type="text" id="newName" placeholder="Name" aria-label="New person's name">
+          <select id="newRole" aria-label="New person's role"></select>
+          <button class="btn small" id="addPerson" type="button">Add person</button>
+        </div>
+        <hr class="sep">
+        <button class="btn warn" id="resetBtn" type="button">Reset to sample data</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="stats" id="stats" aria-label="Plan summary"></section>
+
+      <section class="panel summary" id="summary" aria-label="Status summary"></section>
+
+      <section class="panel" aria-labelledby="tlTitle">
+        <div class="panel-head">
+          <h2 id="tlTitle">Timeline</h2>
+          <div class="legend">
+            <span><i style="background:var(--design)"></i>Design</span>
+            <span><i style="background:var(--build)"></i>Build</span>
+            <span><i style="background:var(--qa)"></i>QA</span>
+            <span><i class="bar idle" style="min-height:10px"></i>Stalled</span>
+            <span><i style="background:var(--ink);width:2px"></i>Target</span>
+            <span><i style="background:var(--accent);width:2px"></i>Go-live</span>
+          </div>
+        </div>
+        <div class="scroll"><div class="grid" id="gantt"></div></div>
+      </section>
+
+
+    </main>
+  </div>
+</div>
+
+<script>
+const KEY = "ctp-state-v3";
+const BKEY = "ctp-baseline-v3";
+const EPS = 1e-6;
+const DAY = 86400000;
+const ROLES = [
+  { id: "design", name: "Design", short: "DES", color: "var(--design)" },
+  { id: "fe", name: "Frontend", short: "FE", color: "var(--build)" },
+  { id: "be", name: "Backend", short: "BE", color: "var(--build)" },
+  { id: "mob", name: "Mobile", short: "MOB", color: "var(--build)" },
+  { id: "qa", name: "QA", short: "QA", color: "var(--qa)" }
+];
+const ROLE = Object.fromEntries(ROLES.map(r => [r.id, r]));
+const WORK = ["design", "fe", "be", "mob", "qa", "auto"];
+const PHASE = { design: "design", fe: "build", be: "build", mob: "build", qa: "qa", auto: "qa" };
+const roleOfKey = k => (k === "auto" ? "qa" : k);
+
+// Sample team and projects. In a connected version these come from the HR system and Linear.
+const SAMPLE_PEOPLE = [
+  { id: "u1", name: "Ana Ruiz", role: "design", off: { "2026-12": 5 } },
+  { id: "u2", name: "Tom Becker", role: "design", off: { "2027-02": 5 } },
+  { id: "u3", name: "Priya Nair", role: "fe", off: { "2026-12": 3, "2027-04": 4 } },
+  { id: "u4", name: "Luca Moretti", role: "fe", off: { "2026-12": 8 } },
+  { id: "u5", name: "Sofia Petrova", role: "fe", off: { "2027-01": 3 } },
+  { id: "u6", name: "Daniel Kim", role: "be", off: { "2027-03": 5 } },
+  { id: "u7", name: "Elif Yılmaz", role: "be", off: { "2026-12": 4, "2027-02": 3 } },
+  { id: "u8", name: "Marco Silva", role: "be", off: { "2026-11": 2, "2026-12": 6 } },
+  { id: "u9", name: "Hana Sato", role: "mob", off: { "2027-01": 5 } },
+  { id: "u10", name: "Jonas Weber", role: "mob", off: { "2026-12": 5 } },
+  { id: "u11", name: "Irina Popova", role: "qa", off: { "2026-12": 3, "2027-03": 4 } },
+  { id: "u12", name: "Sam Carter", role: "qa", off: { "2027-02": 5 } },
+  { id: "u13", name: "Lena Fischer", role: "qa", off: { "2027-01": 4 } }
+];
+const SAMPLE_PROJECTS = [
+  { id: "p1", release: "mvp", name: "KYC onboarding revamp", src: "linear", on: true, effort: { design: 3, fe: 5, be: 8, mob: 4, qa: 4 }, assign: { design: ["u1"], fe: ["u3"], be: ["u6", "u7"], mob: ["u9"], qa: ["u11"] }, target: "2027-01-29", after: "" },
+  { id: "p2", release: "mvp", name: "Card deposits", src: "linear", on: true, effort: { design: 2, fe: 3, be: 12, mob: 5, qa: 5 }, assign: { design: ["u2"], fe: ["u4"], be: ["u7", "u8"], mob: ["u10"], qa: ["u12"] }, target: "2027-02-26", after: "" },
+  { id: "p3", release: "mvp", name: "Back-office permissions", src: "linear", on: true, effort: { design: 1, fe: 6, be: 6, mob: 0, qa: 3 }, assign: { design: ["u2"], fe: ["u5", "u3"], be: ["u6"], mob: [], qa: ["u13"] }, target: "2027-03-12", after: "" },
+  { id: "p4", release: "mvp", name: "Recurring investments", src: "linear", on: true, effort: { design: 3, fe: 4, be: 10, mob: 6, qa: 4 }, assign: { design: ["u2"], fe: ["u4"], be: ["u8", "u6"], mob: ["u9"], qa: ["u12"] }, target: "2027-04-09", after: "" },
+  { id: "p5", release: "mvp", name: "Referral program", src: "linear", on: true, effort: { design: 2, fe: 3, be: 4, mob: 4, qa: 2 }, assign: { design: ["u1"], fe: ["u5"], be: ["u7"], mob: ["u10"], qa: ["u11"] }, target: "2027-04-16", after: "p2" },
+  { id: "p6", release: "v11", name: "Price alerts", src: "linear", on: true, effort: { design: 1, fe: 2, be: 4, mob: 5, qa: 2 }, assign: { design: ["u2"], fe: ["u3"], be: ["u8", "u7"], mob: ["u9", "u10"], qa: ["u13"] }, target: "2027-04-30", after: "" },
+  { id: "p7", release: "v11", name: "Dark mode", src: "linear", on: true, effort: { design: 2, fe: 4, be: 0, mob: 4, qa: 2 }, assign: { design: ["u1"], fe: ["u5", "u4"], be: [], mob: ["u9", "u10"], qa: ["u13"] }, target: "2027-04-30", after: "" }
+];
+const SAMPLE = {
+  start: "2026-11-02", horizon: 26, focus: 80, goLive: "2027-04-09", autoTests: true, autoPct: 40,
+  people: SAMPLE_PEOPLE, projects: SAMPLE_PROJECTS
+};
+
+const clone = o => JSON.parse(JSON.stringify(o));
+function readStore(k) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+function writeStore(k, v) { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+
+let state = readStore(KEY) || clone(SAMPLE);
+state.projects.forEach(p => { if (p.release !== "v11") p.release = "mvp"; });
+// MVP projects always come first, so they get people's time before V1.1.
+function sortProjects(st = state) { st.projects = st.projects.filter(p => p.release !== "v11").concat(st.projects.filter(p => p.release === "v11")); }
+sortProjects();
+// MVP projects are due on the go-live date; V1.1 projects keep their own target.
+const targetOf = p => (p.release === "v11" || !state.goLive ? p.target : state.goLive);
+const daysBetween = (a, b) => Math.round((a - b) / DAY);
+const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+function setRelease(p, rel, st = state) {
+  p.release = rel;
+  if (rel === "v11" && st.goLive && !(p.target > st.goLive)) p.target = new Date(isoDate(st.goLive).getTime() + 28 * DAY).toISOString().slice(0, 10);
+}
+// A project counts as ready for go-live when it has effort and lands on or before its due date.
+const isReady = (p, R) => statusOf(p, R).kind === "good";
+let baseline = readStore(BKEY);
+let last = null;
+
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const $ = id => document.getElementById(id);
+const personById = id => state.people.find(x => x.id === id);
+const firstName = id => { const p = personById(id); return p ? p.name.split(" ")[0] : "?"; };
+
+// Dates
+function startMs() { const d = Date.parse(state.start + "T00:00:00Z"); return isNaN(d) ? Date.parse("2026-11-02T00:00:00Z") : d; }
+function weekDate(w, offset) { return new Date(startMs() + (w * 7 + (offset || 0)) * DAY); }
+function isoDate(iso) { return new Date(iso + "T00:00:00Z"); }
+function fmt(d) { return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" }); }
+function fmtLong(d) { return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }); }
+function weekOf(iso) { const t = Date.parse(iso + "T00:00:00Z"); if (isNaN(t)) return null; return Math.floor((t - startMs()) / DAY / 7); }
+const monthKey = d => d.toISOString().slice(0, 7);
+function isPublicHoliday(d) { const m = d.getUTCMonth(), day = d.getUTCDate(); return (m === 11 && (day === 24 || day === 25 || day === 26 || day === 31)) || (m === 0 && day === 1); }
+const workdayCache = {};
+function workdays(mk) {
+  if (workdayCache[mk]) return workdayCache[mk];
+  const [y, m] = mk.split("-").map(Number); let n = 0;
+  for (let d = new Date(Date.UTC(y, m - 1, 1)); d.getUTCMonth() === m - 1; d = new Date(d.getTime() + DAY)) { const wd = d.getUTCDay(); if (wd > 0 && wd < 6 && !isPublicHoliday(d)) n++; }
+  return (workdayCache[mk] = n || 1);
+}
+function months() {
+  const out = []; const a = weekDate(0), b = weekDate(state.horizon - 1, 4);
+  for (let d = new Date(Date.UTC(a.getUTCFullYear(), a.getUTCMonth(), 1)); d <= b; d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1))) out.push(monthKey(d));
+  return out;
+}
+const monthLabel = mk => isoDate(mk + "-01").toLocaleDateString("en-GB", { month: "short", year: "2-digit", timeZone: "UTC" });
+function publicFactor(w) { let n = 0; for (let i = 0; i < 5; i++) if (!isPublicHoliday(weekDate(w, i))) n++; return n / 5; }
+// A person's capacity in person-weeks for week w; withLeave=false ignores their own time off.
+function personCap(person, w, withLeave = true) {
+  let s = 0;
+  for (let i = 0; i < 5; i++) {
+    const d = weekDate(w, i);
+    if (isPublicHoliday(d)) continue;
+    const mk = monthKey(d);
+    const frac = withLeave ? Math.min(1, (+(person.off || {})[mk] || 0) / workdays(mk)) : 0;
+    s += 1 - frac;
+  }
+  return (state.focus / 100) * s / 5;
+}
+
+function effortOf(p) {
+  const e = {};
+  ["design", "fe", "be", "mob", "qa"].forEach(k => e[k] = Math.max(0, +p.effort[k] || 0));
+  e.auto = state.autoTests ? +(e.qa * state.autoPct / 100).toFixed(2) : 0;
+  return e;
+}
+
+function simulate() {
+  const W = state.horizon, people = state.people;
+  const cap = {}, base = {}, used = {}, short = {};
+  people.forEach(u => {
+    cap[u.id] = Array.from({ length: W }, (_, w) => personCap(u, w));
+    base[u.id] = Array.from({ length: W }, (_, w) => personCap(u, w, false));
+    used[u.id] = Array(W).fill(0); short[u.id] = Array(W).fill(0);
+  });
+  const active = state.projects.filter(p => p.on);
+  const res = {};
+  active.forEach(p => {
+    const tot = effortOf(p);
+    res[p.id] = { tot, rem: { ...tot }, weeks: Array(W).fill(null), start: null, finish: null, needs: new Set(), waitP: {}, leave: {}, depWeeks: 0 };
+  });
+  for (let w = 0; w < W; w++) {
+    const left = {}; people.forEach(u => left[u.id] = cap[u.id][w]);
+    for (const p of active) {
+      const R = res[p.id];
+      if (R.finish !== null) continue;
+      const dep = p.after && p.after !== p.id ? res[p.after] : null;
+      if (dep && (dep.finish === null || dep.finish >= w)) { R.depWeeks++; R.weeks[w] = { wait: true }; continue; }
+      const designLeft = R.rem.design > EPS;
+      const buildTot = R.tot.fe + R.tot.be + R.tot.mob, buildLeft = R.rem.fe + R.rem.be + R.rem.mob;
+      const buildFrac = buildTot > EPS ? (buildTot - buildLeft) / buildTot : (designLeft ? 0 : 1);
+      const cell = { design: 0, build: 0, qa: 0 };
+      for (const key of WORK) {
+        if (R.rem[key] <= EPS) continue;
+        if (key !== "design" && designLeft) continue;
+        let allow = R.rem[key];
+        if (key === "qa" || key === "auto") allow = Math.min(allow, R.tot[key] * buildFrac - (R.tot[key] - R.rem[key]));
+        if (allow <= EPS) continue;
+        const role = roleOfKey(key);
+        const team = ((p.assign || {})[role] || []).filter(id => { const u = personById(id); return u && u.role === role; });
+        if (!team.length) { R.needs.add(role); continue; }
+        const potential = team.reduce((s, id) => s + cap[id][w], 0);
+        const potentialBase = team.reduce((s, id) => s + base[id][w], 0);
+        const want = Math.min(allow, potential);
+        const lost = Math.min(allow, potentialBase) - want;
+        if (lost > EPS) team.forEach(id => { const d = base[id][w] - cap[id][w]; if (d > EPS) R.leave[id] = (R.leave[id] || 0) + lost * d / (potentialBase - potential); });
+        let got = 0;
+        for (const id of team) { const g = Math.min(want - got, left[id]); if (g > EPS) { left[id] -= g; used[id][w] += g; got += g; } }
+        R.rem[key] -= got; cell[PHASE[key]] += got;
+        const miss = want - got;
+        if (miss > EPS) {
+          const busy = team.filter(id => cap[id][w] > EPS && left[id] <= EPS);
+          const blame = busy.length ? busy : team;
+          blame.forEach(id => { short[id][w] += miss / blame.length; R.waitP[id] = (R.waitP[id] || 0) + miss / blame.length; });
+        }
+      }
+      const sum = cell.design + cell.build + cell.qa;
+      if (sum > EPS) { R.weeks[w] = cell; if (R.start === null) R.start = w; }
+      if (R.start !== null && WORK.every(k => R.rem[k] <= EPS)) R.finish = w;
+    }
+  }
+  return { W, cap, used, short, res, active };
+}
+
+function statusOf(p, R) {
+  const total = WORK.reduce((a, k) => a + R.tot[k], 0);
+  if (total <= EPS) return { kind: "mute", label: "No effort entered" };
+  if (R.finish === null && R.needs.size) return { kind: "bad", label: "No " + [...R.needs].map(r => ROLE[r].name).join(", ") + " assigned", late: true, blocked: true };
+  if (R.finish === null) return { kind: "bad", label: "Past " + fmt(weekDate(state.horizon - 1, 4)), late: true, beyond: true };
+  const done = weekDate(R.finish, 4), tw = weekOf(targetOf(p));
+  if (tw === null) return { kind: "mute", label: "Done " + fmt(done), done };
+  const diff = R.finish - tw, days = daysBetween(done, isoDate(targetOf(p)));
+  if (days > 0) return { kind: "bad", label: days + (days === 1 ? " day late" : " days late"), late: true, done, diff, days };
+  return { kind: "good", label: "On time", done, diff, days };
+}
+function topEntry(obj, min) { let best = null; for (const [k, v] of Object.entries(obj)) if (v > min && (!best || v > best[1])) best = [k, v]; return best; }
+function nameOf(id) { const p = state.projects.find(x => x.id === id); return p ? p.name : "another project"; }
+
+function headerRow(W, gl) {
+  let head = '<div class="gh" style="grid-column:1"></div>', prev = -1;
+  for (let w = 0; w < W; w++) {
+    const d = weekDate(w), m = d.getUTCMonth();
+    const month = m !== prev ? `<b>${d.toLocaleDateString("en-GB", { month: "short", timeZone: "UTC" })}</b>` : "";
+    prev = m;
+    const hol = publicFactor(w) < 1;
+    head += `<div class="gh${hol ? " hol" : ""}${w === gl ? " gl" : ""}" style="grid-column:${w + 2}" title="Week of ${fmtLong(d)}${hol ? " (public holidays)" : ""}">${month}${d.getUTCDate()}</div>`;
+  }
+  return head;
+}
+
+function renderOutput() {
+  const sim = simulate(); last = sim;
+  const { W, cap, used, short, res, active } = sim;
+  document.querySelectorAll(".grid").forEach(g => g.style.setProperty("--weeks", W));
+  const gl = weekOf(state.goLive);
+  const head = headerRow(W, gl);
+
+  // Timeline
+  let g = head, onTime = 0, late = 0, ready = 0, prevRel = null;
+  const nMvp = active.filter(p => p.release !== "v11" && statusOf(p, res[p.id]).kind !== "mute").length;
+  active.forEach(p => {
+    const R = res[p.id], st = statusOf(p, R);
+    if (p.release !== prevRel) { prevRel = p.release; g += p.release === "v11" ? `<div class="gsep">V1.1 <span>own target dates</span></div>` : `<div class="gsep">MVP <span>due ${state.goLive ? fmtLong(isoDate(state.goLive)) : "on go-live"}</span></div>`; }
+    if (st.kind === "good") onTime++; else if (st.late) late++;
+    if (p.release !== "v11" && st.kind === "good") ready++;
+    let delta = "";
+    if (baseline && baseline[p.id] !== undefined && baseline[p.id] !== null && R.finish !== null) {
+      const dd = R.finish - baseline[p.id];
+      delta = dd ? `<span class="delta ${dd > 0 ? "up" : "down"}">${dd > 0 ? "+" : "−"}${Math.abs(dd)} wk vs baseline</span>` : `<span class="delta">same as baseline</span>`;
+    }
+    const doneTxt = st.done && st.kind !== "mute" ? `<span class="delta">${fmt(st.done)}</span>` : "";
+    g += `<div class="lbl" style="grid-column:1"><span class="n" title="${esc(p.name)}">${esc(p.name)}</span><span class="status"><span class="pill ${st.kind}">${esc(st.label)}</span>${doneTxt}${delta}</span></div>`;
+    const tw = weekOf(targetOf(p)), end = R.finish === null ? W - 1 : R.finish;
+    for (let w = 0; w < W; w++) {
+      const c = R.weeks[w];
+      let bar = "";
+      if (c && c.wait) bar = `<div class="bar wait" title="Waiting for ${esc(nameOf(p.after))} to finish"></div>`;
+      else if (c) {
+        const s = c.design + c.build + c.qa, a = c.design / s * 100, b = a + c.build / s * 100;
+        bar = `<div class="bar" style="background:linear-gradient(to bottom, var(--design) 0 ${a}%, var(--build) ${a}% ${b}%, var(--qa) ${b}% 100%)" title="${fmt(weekDate(w))}: ${s.toFixed(1)} person-weeks"></div>`;
+      } else if (R.start !== null && w > R.start && w <= end) bar = `<div class="bar idle" title="${fmt(weekDate(w))}: stalled, assignees busy or away"></div>`;
+      const mark = tw === w ? `<span class="target" title="${p.release === "v11" ? "Target" : "Due at go-live"} ${fmtLong(isoDate(targetOf(p)))}"></span>` : "";
+      g += `<div class="cell${publicFactor(w) < 1 ? " hol" : ""}${w === gl ? " gl" : ""}" style="grid-column:${w + 2}">${bar}${mark}</div>`;
+    }
+  });
+  if (!active.length) g += `<div class="lbl" style="grid-column:1 / -1"><span class="hint">No projects are switched on.</span></div>`;
+  $("gantt").innerHTML = g;
+
+  // Monthly capacity used per person, shown under their time-off inputs. Each week counts toward the month of its Wednesday.
+  const queued = [];
+  state.people.forEach(u => {
+    const byM = {};
+    for (let w = 0; w < W; w++) {
+      const mk = monthKey(weekDate(w, 2)), m = byM[mk] = byM[mk] || { cap: 0, used: 0, short: 0 };
+      m.cap += cap[u.id][w]; m.used += used[u.id][w]; m.short += short[u.id][w];
+    }
+    const ts = short[u.id].reduce((a, b) => a + b, 0);
+    if (ts > 0.05) queued.push({ u, ts });
+    Object.entries(byM).forEach(([mk, m]) => {
+      const el = $(`use-${u.id}-${mk}`); if (!el) return;
+      const pct = m.cap > EPS ? Math.round(m.used / m.cap * 100) : 0;
+      el.textContent = m.cap > EPS ? pct + "%" : "off";
+      el.className = "use" + (m.short > 0.05 ? " short" : "") + (pct >= 90 ? " full" : "");
+      el.title = `${u.name}, ${monthLabel(mk)}: ${m.used.toFixed(1)} of ${m.cap.toFixed(1)} person-weeks used` + (m.short > 0.05 ? `, ${m.short.toFixed(1)} queued` : "");
+    });
+    const tc = cap[u.id].reduce((a, b) => a + b, 0), tu = used[u.id].reduce((a, b) => a + b, 0);
+    const el = $("util-" + u.id); if (el) el.textContent = (tc > EPS ? Math.round(tu / tc * 100) : 0) + "%";
+  });
+
+  // Stats: everyone with at least 1 person-week queued and at least half the worst queue, top 3
+  queued.sort((a, b) => b.ts - a.ts);
+  const bns = queued.filter(q => q.ts >= 1 && q.ts >= queued[0].ts * 0.5).slice(0, 3);
+  const n = active.length;
+  $("stats").innerHTML = `
+    <div class="stat"><span class="eyebrow">MVP ready for go-live</span><span class="v ${ready === nMvp ? "good" : "bad"}">${ready}<small> / ${nMvp}</small></span><span class="s">done by ${state.goLive ? fmtLong(isoDate(state.goLive)) : "no date set"}</span></div>
+    <div class="stat"><span class="eyebrow">On target</span><span class="v good">${onTime}<small> / ${n}</small></span><span class="s">meet their own target date</span></div>
+    <div class="stat"><span class="eyebrow">Late or blocked</span><span class="v ${late ? "bad" : ""}">${late}</span><span class="s">miss target or lack an assignee</span></div>
+    <div class="stat"><span class="eyebrow">${bns.length > 1 ? "Bottlenecks" : "Bottleneck"}</span>${bns.length ? bns.map(b => `<span class="bn" title="${ROLE[b.u.role].name} · ${b.ts.toFixed(1)} person-weeks queued">${esc(b.u.name)}</span>`).join("") : `<span class="v">None</span><span class="s">nobody is over-booked</span>`}</div>`;
+
+  clearTimeout(summaryTimer);
+  if (summaryPainted) summaryTimer = setTimeout(() => renderSummary(last), 150); else { renderSummary(sim); summaryPainted = true; }
+  $("baselineBtn").textContent = baseline ? "Update baseline" : "Save as baseline";
+}
+
+// Status summary and recommendations. Each recommendation is tested by re-running the schedule with that change.
+// Days late only count projects with a finish date. Blocked or past-plan projects are counted as "stuck" instead.
+function scorePlan(sim) {
+  const mvpLate = [], v11Late = [], byId = {};
+  let mvpDays = 0, v11Days = 0, mvpStuck = 0, nMvp = 0;
+  sim.active.forEach(p => {
+    const R = sim.res[p.id], st = statusOf(p, R);
+    if (st.kind === "mute") return;
+    if (p.release !== "v11") nMvp++;
+    if (!st.late) return;
+    const stuck = !st.done, d = stuck ? 0 : st.days;
+    byId[p.id] = d;
+    if (p.release === "v11") { v11Late.push(p.id); v11Days += d; }
+    else { mvpLate.push(p.id); mvpDays += d; if (stuck) mvpStuck++; }
+  });
+  return { mvpLate, mvpDays, mvpStuck, v11Late, v11Days, nMvp, byId };
+}
+function tryChange(mutate) {
+  const saved = state; state = clone(saved);
+  try { mutate(state); sortProjects(); return scorePlan(simulate()); } finally { state = saved; }
+}
+let recs = [], summaryTimer, summaryPainted = false;
+function buildRecs(sim, now) {
+  if (!state.goLive || !now.mvpLate.length) return [];
+  const cands = [];
+  const P = (st, id) => st.projects.find(x => x.id === id);
+  now.mvpLate.forEach(id => {
+    const p = P(state, id), R = sim.res[id];
+    ROLES.forEach(r => {
+      if (!(R.tot[r.id] > 0 || (r.id === "qa" && R.tot.auto > 0))) return;
+      const have = (p.assign && p.assign[r.id]) || [];
+      state.people.filter(u => u.role === r.id && !have.includes(u.id)).forEach(u => cands.push({
+        type: 0, key: "a" + id + r.id, text: `Add ${u.name} (${r.name}) to ${p.name}`,
+        apply: st => { const q = P(st, id); q.assign = q.assign || {}; const l = q.assign[r.id] = q.assign[r.id] || []; if (!l.includes(u.id)) l.push(u.id); }
+      }));
+    });
+    const i = state.projects.findIndex(x => x.id === id);
+    if (i > 0) cands.push({ type: 1, key: "t" + id, text: `Move ${p.name} to the top of the MVP list`,
+      apply: st => { const q = P(st, id); st.projects = [q].concat(st.projects.filter(x => x.id !== id)); } });
+  });
+  if (state.autoTests) cands.push({ type: 2, key: "m", text: "Switch to manual testing only", apply: st => { st.autoTests = false; } });
+  // Only late MVP projects are offered for V1.1, and only as a fallback after real fixes.
+  now.mvpLate.forEach(id => { const p = P(state, id); cands.push({ type: 3, key: "d" + id, pid: id, text: `Move ${p.name} to V1.1`,
+    apply: st => { setRelease(P(st, id), "v11", st); } }); });
+  const scored = cands.map(c => {
+      const r = tryChange(c.apply);
+      // The moved project's own V1.1 lateness is the point of the move, so leave it out of the V1.1 comparison.
+      if (c.pid && r.v11Late.includes(c.pid)) { r.v11Days -= r.byId[c.pid] || 0; r.v11Late = r.v11Late.filter(x => x !== c.pid); }
+      return { ...c, r };
+    })
+    .filter(c => c.r.mvpLate.length < now.mvpLate.length || c.r.mvpStuck < now.mvpStuck ||
+      (c.r.mvpLate.length === now.mvpLate.length && c.r.mvpStuck === now.mvpStuck && c.r.mvpDays <= now.mvpDays - 3));
+  scored.sort((a, b) => a.r.mvpLate.length - b.r.mvpLate.length || a.r.mvpStuck - b.r.mvpStuck || (a.type === 3) - (b.type === 3) || a.r.mvpDays - b.r.mvpDays || a.type - b.type || (a.r.v11Days - b.r.v11Days));
+  const seen = new Set(), out = [];
+  let descopes = 0;
+  for (const c of scored) {
+    if (seen.has(c.key) || (c.type === 3 && descopes)) continue;
+    seen.add(c.key); if (c.type === 3) descopes++;
+    out.push(c); if (out.length === 3) break;
+  }
+  return out;
+}
+function effectText(c, now) {
+  const r = c.r, parts = [];
+  if (!r.mvpLate.length) parts.push(c.type === 3 ? `The other ${r.nMvp} MVP projects make the go-live.` : `All ${r.nMvp} MVP projects make the go-live.`);
+  else if (r.mvpLate.length < now.mvpLate.length) parts.push(`${r.mvpLate.length} MVP ${r.mvpLate.length === 1 ? "project stays" : "projects stay"} late, down from ${now.mvpLate.length}.`);
+  else if (r.mvpStuck < now.mvpStuck) parts.push(`Unblocks ${plural(now.mvpStuck - r.mvpStuck, "MVP project")}.`);
+  else parts.push(`Total MVP delay drops from ${plural(now.mvpDays, "day")} to ${plural(r.mvpDays, "day")}.`);
+  if (c.type !== 3) {
+    const newly = r.v11Late.filter(id => !now.v11Late.includes(id)).map(id => (state.projects.find(x => x.id === id) || {}).name).filter(Boolean);
+    if (newly.length) parts.push(`${listJoin(newly)} in V1.1 ${newly.length === 1 ? "becomes" : "become"} late.`);
+    else if (r.v11Days > now.v11Days) parts.push(`V1.1 slips ${plural(r.v11Days - now.v11Days, "more day")} in total.`);
+  }
+  return parts.join(" ");
+}
+function listJoin(a) { return a.length < 2 ? a.join("") : a.slice(0, -1).join(", ") + " and " + a[a.length - 1]; }
+function renderSummary(sim) {
+  const now = scorePlan(sim);
+  const counted = p => statusOf(p, sim.res[p.id]).kind !== "mute";
+  const mvp = sim.active.filter(p => p.release !== "v11" && counted(p)), v11 = sim.active.filter(p => p.release === "v11" && counted(p));
+  const lateTxt = ids => listJoin(ids.map(id => { const p = sim.active.find(x => x.id === id), st = statusOf(p, sim.res[id]); return `${esc(p.name)} (${st.blocked ? esc(st.label.toLowerCase()) : st.beyond ? "not done by " + fmt(weekDate(state.horizon - 1, 4)) : plural(st.days, "day")})`; }));
+  let pill, text = [];
+  if (!state.goLive) { pill = `<span class="pill mute">No go-live set</span>`; text.push("Set a desired go-live date in Settings to track the MVP."); }
+  else {
+    const off = now.mvpLate.some(id => { const st = statusOf(sim.active.find(x => x.id === id), sim.res[id]); return st.blocked || st.beyond; });
+    pill = !now.mvpLate.length ? `<span class="pill good">On track</span>` : off ? `<span class="pill bad">Off track</span>` : `<span class="pill bad">At risk</span>`;
+    text.push(`${mvp.length - now.mvpLate.length} of ${plural(mvp.length, "MVP project")} ${mvp.length === 1 ? "is" : "are"} ready by the ${fmt(isoDate(state.goLive))} go-live.`);
+    if (now.mvpLate.length) text.push(`Late: ${lateTxt(now.mvpLate)}.`);
+    else if (mvp.length) { const lastDone = Math.max(...mvp.map(p => sim.res[p.id].finish ?? 0)); const spare = daysBetween(isoDate(state.goLive), weekDate(lastDone, 4)); text.push(`The last MVP project lands ${fmt(weekDate(lastDone, 4))}` + (spare > 0 ? `, ${plural(spare, "day")} before go-live.` : ", right on the go-live date.")); }
+  }
+  if (v11.length) text.push(now.v11Late.length ? `V1.1 late against its own targets: ${lateTxt(now.v11Late)}.` : `V1.1 is on track for its own targets.`);
+  recs = buildRecs(sim, now);
+  const recHtml = recs.length ? `<span class="eyebrow">To meet the go-live</span><ul class="recs">${recs.map((c, i) => `<li><div><strong>${esc(c.text)}</strong><div class="eff">${esc(effectText(c, now))}</div></div><button type="button" class="btn tiny" data-rec="${i}">Apply</button></li>`).join("")}</ul>`
+    : (state.goLive && now.mvpLate.length ? `<p class="hint">No single change brings the MVP in on time. Try moving several projects to V1.1 or extending the go-live.</p>` : "");
+  $("summary").innerHTML = `<div class="summary-head"><h2>Status</h2>${pill}</div><p>${text.join(" ")}</p>${recHtml}`;
+}
+$("summary").addEventListener("click", e => {
+  const b = e.target.closest("[data-rec]"); if (!b) return;
+  const c = recs[+b.dataset.rec]; if (!c) return;
+  c.apply(state); sortProjects(); renderAll(); renderSummary(last); toast(`Applied: ${c.text}`);
+});
+
+function save() { writeStore(KEY, state); }
+function update() { save(); renderOutput(); }
+
+// Project editor
+function autoLabel(p) { const e = effortOf(p); return state.autoTests && e.auto > 0 ? `+${e.auto} auto` : ""; }
+const openRows = new Set();
+function renderProjects() {
+  const head = `<div class="prow head"><span></span><span class="l">Project</span>${ROLES.map(r => `<span title="${r.name}">${r.short}</span>`).join("")}<span></span></div>`;
+  let prevRel = null;
+  $("projList").innerHTML = head + state.projects.map((p, i) => {
+    const open = openRows.has(p.id);
+    let sep = "";
+    if (p.release !== prevRel) {
+      if (prevRel === null && p.release === "v11") sep += `<div class="psep">MVP <span>No projects. Use ▲ to move one up.</span></div>`;
+      prevRel = p.release;
+      sep += p.release === "v11" ? `<div class="psep">V1.1 <span>after the MVP, own target dates</span></div>` : `<div class="psep">MVP <span>due ${state.goLive ? fmtLong(isoDate(state.goLive)) : "on go-live"}</span></div>`;
+    }
+    const effort = ROLES.map(r => `<input type="number" min="0" step="0.5" id="eff-${p.id}-${r.id}" data-p="${p.id}" data-role="${r.id}" value="${p.effort[r.id] ?? 0}" aria-label="${esc(p.name)}: ${r.name} effort in person-weeks">`).join("");
+    let detail = "";
+    if (open) {
+      const opts = ['<option value="">No dependency</option>'].concat(state.projects.filter(o => o.id !== p.id).map(o => `<option value="${o.id}"${p.after === o.id ? " selected" : ""}>${esc(o.name)}</option>`)).join("");
+      const rows = ROLES.map(r => {
+        const assigned = (p.assign && p.assign[r.id]) || [];
+        const need = (+p.effort[r.id] || 0) > 0 && !assigned.some(id => personById(id));
+        const chips = state.people.filter(u => u.role === r.id).map(u => `<button type="button" class="chip${need ? " need" : ""}" style="--rc:${r.color}" data-p="${p.id}" data-assign="${u.id}" aria-pressed="${assigned.includes(u.id)}" title="${esc(u.name)}">${esc(u.name.split(" ")[0])}</button>`).join("");
+        const auto = r.id === "qa" ? `<span class="auto" id="auto-${p.id}">${autoLabel(p)}</span>` : "";
+        return `<div class="arow"><span class="rl">${r.short}</span><div class="chips">${chips || '<span class="hint">Nobody in this role</span>'}${auto}</div></div>`;
+      }).join("");
+      detail = `<div class="pdetail" id="detail-${p.id}">${rows}
+        <div class="proj-foot">
+          ${p.release === "v11" || !state.goLive ? `<div class="field"><label for="tgt-${p.id}">Target date</label><input type="date" id="tgt-${p.id}" data-p="${p.id}" data-k="target" value="${p.target}"></div>` : `<div class="field"><label>Due</label><span class="hint" style="padding-top:5px">With the go-live${state.goLive ? ", " + fmt(isoDate(state.goLive)) : ""}</span></div>`}
+          <div class="field"><label for="after-${p.id}">Starts after</label><select id="after-${p.id}" data-p="${p.id}" data-k="after">${opts}</select></div>
+        </div>
+        <div class="row-btns"><label class="toggle"><input type="checkbox" id="on-${p.id}" data-p="${p.id}" data-k="on" ${p.on ? "checked" : ""}>Include in plan</label><button type="button" class="btn tiny" data-rel="${p.id}">Move to ${p.release === "v11" ? "MVP" : "V1.1"}</button><button type="button" class="link-btn" data-del="${p.id}">Remove project</button></div>
+      </div>`;
+    }
+    return sep + `<div class="pitem${p.on ? "" : " off"}" data-id="${p.id}"><div class="prow">
+        <span class="moves"><button type="button" class="icon-btn" data-move="-1" data-p="${p.id}" aria-label="Raise priority of ${esc(p.name)}" ${i === 0 && p.release !== "v11" ? "disabled" : ""}>▲</button><button type="button" class="icon-btn" data-move="1" data-p="${p.id}" aria-label="Lower priority of ${esc(p.name)}" ${i === state.projects.length - 1 && p.release === "v11" ? "disabled" : ""}>▼</button></span>
+        <input class="name-in" id="name-${p.id}" data-p="${p.id}" data-k="name" value="${esc(p.name)}" title="${esc(p.name)}" aria-label="Project name">
+        ${effort}
+        <button type="button" class="icon-btn" data-expand="${p.id}" aria-expanded="${open}" aria-controls="detail-${p.id}" aria-label="${open ? "Hide" : "Show"} assignees and dates for ${esc(p.name)}">${open ? "▾" : "▸"}</button>
+      </div>${detail}</div>`;
+  }).join("") + (prevRel !== "v11" ? `<div class="psep">V1.1 <span>No projects. Use ▼ to move one down.</span></div>` : "");
+}
+function renderProjectsKeepFocus() { const a = document.activeElement && document.activeElement.id; renderProjects(); if (a && $(a)) $(a).focus(); }
+
+$("projList").addEventListener("input", e => {
+  const t = e.target, p = state.projects.find(x => x.id === t.dataset.p);
+  if (!p) return;
+  if (t.dataset.role) { p.effort[t.dataset.role] = Math.max(0, parseFloat(t.value) || 0); if (t.dataset.role === "qa" && $("auto-" + p.id)) $("auto-" + p.id).textContent = autoLabel(p); }
+  else if (t.dataset.k === "name") p.name = t.value;
+  else if (t.dataset.k === "target") { if (t.value) p.target = t.value; }
+  else if (t.dataset.k === "after") p.after = t.value;
+  else if (t.dataset.k === "on") { p.on = t.checked; t.closest(".pitem").classList.toggle("off", !p.on); }
+  update();
+});
+$("projList").addEventListener("change", e => { if (e.target.dataset.k === "name" || e.target.dataset.role) renderProjectsKeepFocus(); });
+$("projList").addEventListener("click", e => {
+  const mv = e.target.closest("[data-move]"), del = e.target.closest("[data-del]"), as = e.target.closest("[data-assign]"), ex = e.target.closest("[data-expand]"), rel = e.target.closest("[data-rel]");
+  if (rel) {
+    const p = state.projects.find(x => x.id === rel.dataset.rel);
+    setRelease(p, p.release === "v11" ? "mvp" : "v11");
+    if (p.release === "mvp") state.projects = state.projects.filter(x => x !== p).concat(p);
+    sortProjects(); renderProjects(); update(); toast(`${p.name} moved to ${p.release === "v11" ? "V1.1" : "MVP"}`);
+  } else if (ex) {
+    const id = ex.dataset.expand; if (openRows.has(id)) openRows.delete(id); else openRows.add(id);
+    renderProjects(); const b = document.querySelector(`[data-expand="${id}"]`); if (b) b.focus();
+  } else if (as) {
+    const p = state.projects.find(x => x.id === as.dataset.p), u = personById(as.dataset.assign);
+    p.assign = p.assign || {}; const list = p.assign[u.role] = p.assign[u.role] || [];
+    const i = list.indexOf(u.id); if (i >= 0) list.splice(i, 1); else list.push(u.id);
+    renderProjectsKeepFocus(); const b = document.querySelector(`[data-p="${p.id}"][data-assign="${u.id}"]`); if (b) b.focus();
+    update();
+  } else if (mv) {
+    const i = state.projects.findIndex(x => x.id === mv.dataset.p), j = i + +mv.dataset.move;
+    const p = state.projects[i], q = state.projects[j];
+    if (!q) { if (j < 0 && p.release === "v11") setRelease(p, "mvp"); else if (j >= state.projects.length && p.release !== "v11") setRelease(p, "v11"); else return; }
+    else if (p.release !== q.release) setRelease(p, q.release); else [state.projects[i], state.projects[j]] = [q, p];
+    sortProjects(); renderProjects(); update();
+    const btn = document.querySelector(`[data-move="${mv.dataset.move}"][data-p="${mv.dataset.p}"]`);
+    if (btn && !btn.disabled) btn.focus();
+  } else if (del) {
+    if (del.dataset.confirm) {
+      state.projects = state.projects.filter(x => x.id !== del.dataset.del);
+      state.projects.forEach(x => { if (x.after === del.dataset.del) x.after = ""; });
+      renderProjects(); update();
+    } else { del.dataset.confirm = "1"; del.textContent = "Click again to remove"; setTimeout(() => { if (del.isConnected) { delete del.dataset.confirm; del.textContent = "Remove project"; } }, 3000); }
+  }
+});
+$("addProj").addEventListener("click", () => {
+  const id = "p" + Date.now().toString(36);
+  state.projects.push({ id, release: "v11", name: "New project", src: "local", on: true, effort: { design: 1, fe: 2, be: 2, mob: 0, qa: 1 }, assign: { design: [], fe: [], be: [], mob: [], qa: [] }, target: weekDate(Math.min(state.horizon - 1, 16), 4).toISOString().slice(0, 10), after: "" });
+  renderProjects(); update();
+  const el = $("name-" + id); if (el) { el.focus(); el.select(); }
+});
+
+// Team and time off
+function renderTeam() {
+  const ms = months();
+  let h = `<div class="off-grid off-head" style="--months:${ms.length}">${ms.map(m => `<span>${monthLabel(m)}</span>`).join("")}</div>`;
+  ROLES.forEach(r => {
+    const team = state.people.filter(u => u.role === r.id);
+    if (!team.length) return;
+    h += `<div class="off-grp"><i class="swatch" style="background:${r.color}"></i><span class="eyebrow">${r.name}</span></div>`;
+    team.forEach(u => {
+      const tot = ms.reduce((a, m) => a + (+(u.off || {})[m] || 0), 0);
+      h += `<div class="off-person"><div class="off-top"><input class="pname" id="pn-${u.id}" data-u="${u.id}" data-k="name" value="${esc(u.name)}" aria-label="Name"><span class="meta"><span id="tot-${u.id}">${tot}</span>d off · <span id="util-${u.id}"></span> used</span><button type="button" class="link-btn" data-delp="${u.id}">Remove</button></div>` +
+        `<div class="off-grid" style="--months:${ms.length}">${ms.map(m => { const v = +(u.off || {})[m] || 0; return `<span class="off-cell"><input type="number" min="0" max="23" step="0.5" id="off-${u.id}-${m}" data-u="${u.id}" data-m="${m}" value="${v || ""}" placeholder="0" class="${v ? "has" : ""}" aria-label="${esc(u.name)} days off in ${monthLabel(m)}"><span class="use" id="use-${u.id}-${m}"></span></span>`; }).join("")}</div></div>`;
+    });
+  });
+  $("offTable").innerHTML = h;
+}
+$("offTable").addEventListener("input", e => {
+  const t = e.target, u = personById(t.dataset.u); if (!u) return;
+  if (t.dataset.m) {
+    u.off = u.off || {}; const v = Math.max(0, parseFloat(t.value) || 0);
+    if (v) u.off[t.dataset.m] = v; else delete u.off[t.dataset.m];
+    t.classList.toggle("has", v > 0);
+    $("tot-" + u.id).textContent = months().reduce((a, m) => a + (+u.off[m] || 0), 0);
+  } else if (t.dataset.k === "name") u.name = t.value;
+  update();
+});
+$("offTable").addEventListener("change", e => { if (e.target.dataset.k === "name") renderProjects(); });
+$("offTable").addEventListener("click", e => {
+  const b = e.target.closest("[data-delp]"); if (!b) return;
+  if (!b.dataset.confirm) { b.dataset.confirm = "1"; b.textContent = "Click again"; setTimeout(() => { if (b.isConnected) { delete b.dataset.confirm; b.textContent = "Remove"; } }, 3000); return; }
+  const id = b.dataset.delp;
+  state.people = state.people.filter(u => u.id !== id);
+  state.projects.forEach(p => Object.keys(p.assign || {}).forEach(r => p.assign[r] = p.assign[r].filter(x => x !== id)));
+  renderTeam(); renderProjects(); update();
+});
+$("newRole").innerHTML = ROLES.map(r => `<option value="${r.id}">${r.name}</option>`).join("");
+$("addPerson").addEventListener("click", () => {
+  const name = $("newName").value.trim();
+  if (!name) { $("newName").focus(); toast("Type a name first."); return; }
+  state.people.push({ id: "u" + Date.now().toString(36), name, role: $("newRole").value, off: {} });
+  $("newName").value = "";
+  renderTeam(); renderProjects(); update(); toast(`${name} added. Assign them to projects in the Projects tab.`);
+});
+
+// Plan controls and settings
+function renderControls() {
+  $("goLive").value = state.goLive || ""; $("autoTests").checked = !!state.autoTests;
+  $("autoHint").textContent = state.autoTests ? `QA writes automated tests, adding ${state.autoPct}% to QA effort` : "Manual testing only";
+  $("setStart").value = state.start; $("setHorizon").value = state.horizon; $("setFocus").value = state.focus; $("setAuto").value = state.autoPct;
+}
+$("goLive").addEventListener("input", e => { state.goLive = e.target.value; renderProjects(); update(); });
+$("autoTests").addEventListener("change", e => { state.autoTests = e.target.checked; renderControls(); renderProjectsKeepFocus(); update(); });
+$("setStart").addEventListener("input", e => {
+  if (!e.target.value) return;
+  const d = isoDate(e.target.value), dow = (d.getUTCDay() + 6) % 7;
+  state.start = new Date(d.getTime() - dow * DAY).toISOString().slice(0, 10); renderTeam(); update();
+});
+$("setStart").addEventListener("change", e => { e.target.value = state.start; });
+$("setHorizon").addEventListener("input", e => { const v = parseInt(e.target.value, 10); if (v >= 8 && v <= 52) { state.horizon = v; renderTeam(); update(); } });
+$("setFocus").addEventListener("input", e => { const v = parseInt(e.target.value, 10); if (v >= 10 && v <= 100) { state.focus = v; update(); } });
+$("setAuto").addEventListener("input", e => { const v = parseInt(e.target.value, 10); if (v >= 0 && v <= 200) { state.autoPct = v; renderControls(); renderProjectsKeepFocus(); update(); } });
+$("resetBtn").addEventListener("click", e => {
+  const b = e.currentTarget;
+  if (!b.dataset.confirm) { b.dataset.confirm = "1"; b.textContent = "Click again to reset everything"; setTimeout(() => { delete b.dataset.confirm; b.textContent = "Reset to sample data"; }, 3000); return; }
+  delete b.dataset.confirm; b.textContent = "Reset to sample data";
+  state = clone(SAMPLE); baseline = null; writeStore(BKEY, null);
+  renderAll(); toast("Sample data restored");
+});
+
+// Tabs
+function showTab(which) {
+  const proj = which === "projects";
+  $("tab-projects").setAttribute("aria-selected", proj); $("tab-settings").setAttribute("aria-selected", !proj);
+  $("pane-projects").hidden = !proj; $("pane-settings").hidden = proj;
+  try { sessionStorage.setItem("ctp-tab", which); } catch (e) {}
+}
+$("tab-projects").addEventListener("click", () => showTab("projects"));
+$("tab-settings").addEventListener("click", () => showTab("settings"));
+
+// Baseline and status update
+$("baselineBtn").addEventListener("click", () => {
+  baseline = {}; last.active.forEach(p => baseline[p.id] = last.res[p.id].finish);
+  writeStore(BKEY, baseline); renderOutput(); toast("Baseline saved. Changes now show against it.");
+});
+function statusText() {
+  const gl = weekOf(state.goLive);
+  const mvp = last.active.filter(p => p.release !== "v11");
+  const ready = mvp.filter(p => isReady(p, last.res[p.id])).length;
+  const lines = [`Delivery plan update (${state.autoTests ? "with automated tests" : "manual testing only"})`];
+  if (state.goLive) lines.push(`MVP go-live ${fmtLong(isoDate(state.goLive))}: ${ready} of ${mvp.filter(p => statusOf(p, last.res[p.id]).kind !== "mute").length} MVP projects ready`);
+  let prevRel = null;
+  last.active.forEach(p => {
+    if (p.release !== prevRel) { prevRel = p.release; lines.push(p.release === "v11" ? "V1.1:" : "MVP:"); }
+    const R = last.res[p.id], st = statusOf(p, R), tp = topEntry(R.waitP, 0.1);
+    let s = `• ${p.name}: `;
+    if (st.blocked) s += st.label.toLowerCase();
+    else if (st.beyond) s += `not done by ${fmt(weekDate(state.horizon - 1, 4))}`;
+    else if (st.done) s += `lands ${fmt(st.done)}` + (st.late ? ` (${st.label}, due ${fmt(isoDate(targetOf(p)))})` : " (on time)");
+    else s += st.label;
+    if (st.late && tp) s += `, waiting on ${personById(tp[0]).name}`;
+    lines.push(s);
+  });
+  return lines.join("\n");
+}
+$("copyBtn").addEventListener("click", () => {
+  const text = statusText();
+  const fallback = () => {
+    let ta = $("copyFallback");
+    if (!ta) { ta = document.createElement("textarea"); ta.className = "copy-fallback"; ta.id = "copyFallback"; ta.setAttribute("aria-label", "Status update text"); document.querySelector(".main").prepend(ta); }
+    ta.value = text; ta.focus(); ta.select(); toast("Text selected. Press Cmd+C or Ctrl+C to copy.");
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => toast("Status update copied. Paste it into Slack."), fallback);
+  else fallback();
+});
+
+let toastTimer;
+function toast(msg) {
+  let t = document.querySelector(".toast");
+  if (!t) { t = document.createElement("div"); t.className = "toast"; t.setAttribute("role", "status"); document.body.appendChild(t); }
+  t.textContent = msg; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 3000);
+}
+
+function renderAll() { renderControls(); renderProjects(); renderTeam(); renderOutput(); save(); }
+renderAll();
+try { if (sessionStorage.getItem("ctp-tab") === "settings") showTab("settings"); } catch (e) {}
+</script>
+

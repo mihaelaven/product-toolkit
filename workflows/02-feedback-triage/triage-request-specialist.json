@@ -1,0 +1,369 @@
+{
+  "id": "fernpayTriageReq",
+  "name": "Feedback triage: Request specialist",
+  "nodes": [
+    {
+      "id": "1b298e38-4d4e-576f-af86-234a65b9e85b",
+      "name": "Called by orchestrator",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "inputSource": "workflowInputs",
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "feedback_text",
+              "type": "string"
+            },
+            {
+              "name": "client_hint",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "59e7fffc-9e43-52fa-8367-33d25108afe4",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8b636c8a-cccc-5f3c-a3af-a8be7c7e2280",
+              "name": "team_key",
+              "value": "TEAM",
+              "type": "string"
+            },
+            {
+              "id": "a63d3bed-85fe-5260-9e2f-6d46d45febac",
+              "name": "clients_db_id",
+              "value": "YOUR_NOTION_CLIENTS_DATABASE_ID",
+              "type": "string"
+            },
+            {
+              "id": "6b067cb9-b5df-53d8-9553-83cdad4d6caa",
+              "name": "feedback_db_id",
+              "value": "YOUR_NOTION_FEEDBACK_DATABASE_ID",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "ceba32ff-90f6-5fb8-a9b1-6521a1e348cb",
+      "name": "Notion: Clients",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.notion.com/v1/databases/{{ $('Config').first().json.clients_db_id }}/query",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "notionApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ page_size: 100 }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "notionApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL",
+          "name": "Notion integration"
+        }
+      }
+    },
+    {
+      "id": "cda6a7cf-96b0-5366-ab24-b2bac4fa32eb",
+      "name": "Notion: Client feedback",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.notion.com/v1/databases/{{ $('Config').first().json.feedback_db_id }}/query",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "notionApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ page_size: 100 }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "notionApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL",
+          "name": "Notion integration"
+        }
+      }
+    },
+    {
+      "id": "2cdcc37b-3f3b-5036-aadf-e85ad610e3a4",
+      "name": "Linear: client request issues",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        880,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.linear.app/graphql",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "linearApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ query: \"query Requests($team: String!) {\\n  issues(first: 100, filter: { team: { key: { eq: $team } }, labels: { name: { eq: \\\"Client request\\\" } } }) {\\n    nodes { identifier title url state { name } }\\n  }\\n}\", variables: { team: $('Config').first().json.team_key } }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "linearApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL",
+          "name": "Linear API key"
+        }
+      }
+    },
+    {
+      "id": "da3ac8a1-4dbc-540c-9e0e-7b3d9892f997",
+      "name": "Compact records",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Flatten Notion rows into short records with stable short ids the agent can cite.\nconst txt = p => (p?.title ?? p?.rich_text ?? []).map(t => t.plain_text).join('');\nconst sel = p => p?.select?.name ?? null;\n\nconst clients = $('Notion: Clients').first().json.results.map((row, i) => ({\n  ref: `C${i + 1}`, name: txt(row.properties['Client']), tier: sel(row.properties['Tier']),\n  arr_eur: row.properties['ARR (EUR)']?.number ?? null, status: sel(row.properties['Status']),\n  segment: sel(row.properties['Segment']), renewal: row.properties['Renewal date']?.date?.start ?? null,\n}));\nconst feedback = $('Notion: Client feedback').first().json.results.map((row, i) => ({\n  ref: `F${i + 1}`, request: txt(row.properties['Request']), client: sel(row.properties['Client']),\n  quote: txt(row.properties['Quote']), blocks: sel(row.properties['Blocks']),\n  received: row.properties['Received']?.date?.start ?? null, url: row.url,\n}));\nconst linear = ($('Linear: client request issues').first().json.data?.issues?.nodes ?? []).map(i => ({\n  ref: i.identifier, title: i.title, state: i.state?.name, url: i.url,\n}));\nconst input = $('Called by orchestrator').first().json;\nreturn [{ json: { feedback_text: input.feedback_text, client_hint: input.client_hint, clients, feedback, linear } }];\n"
+      }
+    },
+    {
+      "id": "ce4adbd8-2bf5-54a2-ad16-938fcb83f829",
+      "name": "Request agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1320,
+        0
+      ],
+      "parameters": {
+        "promptType": "define",
+        "text": "=Feature request (client hint: {{ $json.client_hint || 'none' }}):\n{{ $json.feedback_text }}\n\nClients:\n{{ JSON.stringify($json.clients) }}\n\nPast client feedback:\n{{ JSON.stringify($json.feedback) }}\n\nLinear client request issues:\n{{ JSON.stringify($json.linear) }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are the Request specialist for Fernpay, a fictional embedded-investing platform.\nYou get one feature request from Slack, the Clients list, past Client feedback and Linear issues labelled Client request.\n\n1. Identify which client asked. Use client_hint and the text. If no client can be identified, return null and say why.\n2. Find earlier requests for the same underlying need, even when worded differently. Cite them only by their ref (F1, F2, TEAM-15). Do not cite anything you are unsure about.\n3. Propose a short request title and keep the requester's own words as the quote.\n4. Do not add up revenue or count clients yourself. A later step computes demand from the refs you cite.\n\nYou never write to Notion. A human approves your proposal first.",
+          "maxIterations": 6
+        }
+      }
+    },
+    {
+      "id": "dd9d755a-d4bd-5874-9a5e-48c7947fba66",
+      "name": "Claude (request)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.5,
+      "position": [
+        1280,
+        220
+      ],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "claude-sonnet-5-5"
+        },
+        "options": {
+          "maxTokensToSample": 2048
+        }
+      },
+      "credentials": {
+        "anthropicApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL",
+          "name": "Anthropic API key"
+        }
+      }
+    },
+    {
+      "id": "9e523a71-0f58-58e5-a9af-bb9208c2fcd5",
+      "name": "Request proposal format",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1460,
+        220
+      ],
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"client_ref\": {\n      \"type\": [\n        \"string\",\n        \"null\"\n      ],\n      \"description\": \"C-ref of the requesting client\"\n    },\n    \"request_title\": {\n      \"type\": \"string\"\n    },\n    \"quote\": {\n      \"type\": \"string\"\n    },\n    \"similar_feedback_refs\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      }\n    },\n    \"similar_linear_refs\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      }\n    },\n    \"confidence\": {\n      \"type\": \"string\",\n      \"enum\": [\n        \"high\",\n        \"medium\",\n        \"low\"\n      ]\n    },\n    \"reasoning\": {\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\n    \"request_title\",\n    \"quote\",\n    \"similar_feedback_refs\",\n    \"similar_linear_refs\",\n    \"confidence\",\n    \"reasoning\"\n  ]\n}"
+      }
+    },
+    {
+      "id": "8d842d93-ed29-5308-9dd3-e638c4b36b23",
+      "name": "Size demand",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Deterministic demand sizing: the agent picks the matches, code does the arithmetic.\nconst data = $('Compact records').first().json;\nconst out = $json.output;\nconst byName = Object.fromEntries(data.clients.map(c => [c.name, c]));\nconst requester = data.clients.find(c => c.ref === out.client_ref) ?? null;\n\nconst matches = data.feedback.filter(f => out.similar_feedback_refs.includes(f.ref));\nconst linearMatches = data.linear.filter(l => out.similar_linear_refs.includes(l.ref));\n\nconst names = new Set(matches.map(f => f.client).filter(n => byName[n]));\nif (requester) names.add(requester.name);\nconst asking = [...names].map(n => byName[n]);\n\nconst arr = asking.reduce((s, c) => s + (c.arr_eur ?? 0), 0);\nconst tiers = asking.map(c => c.tier).filter(Boolean);\nconst blockers = [...new Set(matches.map(f => f.blocks).filter(b => b && b !== 'None'))];\n\nreturn [{ json: {\n  specialist: 'request',\n  client: requester?.name ?? null, client_tier: requester?.tier ?? null, client_arr_eur: requester?.arr_eur ?? null,\n  request_title: out.request_title, quote: out.quote,\n  similar_feedback: matches.map(f => ({ ref: f.ref, request: f.request, client: f.client, url: f.url })),\n  similar_linear: linearMatches,\n  demand: { clients_asking: asking.length, client_names: asking.map(c => c.name), combined_arr_eur: arr,\n            tier1_clients: tiers.filter(t => t === 'Tier 1').length, blocks: blockers },\n  confidence: out.confidence, reasoning: out.reasoning,\n} }];\n"
+      }
+    },
+    {
+      "id": "91a4d374-b108-5545-a187-ef86e871a90c",
+      "name": "Design note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        380,
+        -260
+      ],
+      "parameters": {
+        "width": 760,
+        "height": 200,
+        "color": 7,
+        "content": "## Request specialist (sub-workflow)\nThree plain fetches, then one agent. The agent judges which past requests describe the same need and which client asked. It cites refs only. **Size demand** is code, so client counts and ARR totals are exact and traceable."
+      }
+    }
+  ],
+  "connections": {
+    "Called by orchestrator": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Notion: Clients",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion: Clients": {
+      "main": [
+        [
+          {
+            "node": "Notion: Client feedback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion: Client feedback": {
+      "main": [
+        [
+          {
+            "node": "Linear: client request issues",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Linear: client request issues": {
+      "main": [
+        [
+          {
+            "node": "Compact records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compact records": {
+      "main": [
+        [
+          {
+            "node": "Request agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Request agent": {
+      "main": [
+        [
+          {
+            "node": "Size demand",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude (request)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Request agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Request proposal format": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Request agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "UTC"
+  },
+  "pinData": {}
+}

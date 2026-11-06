@@ -1,0 +1,1250 @@
+{
+  "id": "fernpayTriageOrc",
+  "name": "Feedback triage: Orchestrator",
+  "nodes": [
+    {
+      "id": "cf161377-15c1-50a6-b4a5-a750577505b4",
+      "name": "New message in feedback channel",
+      "type": "n8n-nodes-base.slackTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "24656dc7-59a8-589c-9194-f5e025daccef",
+      "parameters": {
+        "trigger": [
+          "message"
+        ],
+        "watchWorkspace": false,
+        "channelId": {
+          "__rl": true,
+          "value": "YOUR_SLACK_CHANNEL_ID",
+          "mode": "id"
+        },
+        "downloadFiles": false,
+        "options": {}
+      },
+      "credentials": {
+        "slackApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL",
+          "name": "Slack bot token"
+        }
+      }
+    },
+    {
+      "id": "e4e3bf49-b387-5829-90f1-2ff8fb91abc9",
+      "name": "Test with a sample message",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "fada9319-250e-53e7-8e63-2a320a244ae3",
+      "name": "Sample feedback",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        200
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "027a5227-7a25-5a11-b2be-1e727b143e31",
+              "name": "text",
+              "type": "string",
+              "value": "Halden Bank ops says one user's card deposit of EUR 250 was credited twice yesterday. The processor log shows the same webhook arriving two times, 40 seconds apart. Balance now shows EUR 500."
+            },
+            {
+              "id": "6a4c349b-227d-5172-bcf4-be2c5d9a523e",
+              "name": "user",
+              "type": "string",
+              "value": "sample-user"
+            },
+            {
+              "id": "eb68a3fe-0411-5ada-a52b-2bbc27a9bc96",
+              "name": "ts",
+              "type": "string",
+              "value": "0"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "83ad18ce-f3fe-551c-8273-c156919b43a3",
+      "name": "Normalize message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        440,
+        100
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5d54d0fa-ae79-5ace-ab67-c3855bb8e3da",
+              "name": "text",
+              "type": "string",
+              "value": "={{ $json.text }}"
+            },
+            {
+              "id": "6a1c42d3-f047-5628-8e7e-c01175dc099a",
+              "name": "user",
+              "type": "string",
+              "value": "={{ $json.user }}"
+            },
+            {
+              "id": "10caa3c4-682c-55e4-b710-b8d7329c8d49",
+              "name": "ts",
+              "type": "string",
+              "value": "={{ $json.ts }}"
+            },
+            {
+              "id": "9fb47fb3-8520-56b6-8577-73f8c884ea08",
+              "name": "is_bot",
+              "type": "boolean",
+              "value": "={{ !!$json.bot_id || $json.subtype === 'bot_message' }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "8805872c-f9fe-598b-881d-569c529d93ac",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        660,
+        100
+      ],
+      "parameters": {
+        "includeOtherFields": true,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2d75e9a4-dc97-500d-9691-625c4575a9da",
+              "name": "review_channel_id",
+              "value": "YOUR_SLACK_CHANNEL_ID",
+              "type": "string"
+            },
+            {
+              "id": "2c30ce5a-141d-5545-93b8-b7fbb60616de",
+              "name": "linear_team_id",
+              "value": "YOUR_LINEAR_TEAM_ID",
+              "type": "string"
+            },
+            {
+              "id": "abf67456-e8c3-5bdb-852f-d8ed310bfda1",
+              "name": "feedback_db_id",
+              "value": "YOUR_NOTION_FEEDBACK_DATABASE_ID",
+              "type": "string"
+            },
+            {
+              "id": "dff3784e-5ed2-4a4a-97b8-0c1c3cae0139",
+              "name": "approver_user_ids",
+              "value": "YOUR_SLACK_APPROVER_USER_ID",
+              "type": "string"
+            },
+            {
+              "id": "a6901665-5bf3-41b6-bb79-b903314f22d3",
+              "name": "enable_writes",
+              "value": false,
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "0b924b23-e2ac-5bbd-aad7-0a56ddc297fd",
+      "name": "Human message?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        100
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "7194501e-13e3-5ff9-a389-ab9bff899868",
+              "leftValue": "={{ $json.is_bot }}",
+              "rightValue": "false",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "21d5bef4-431b-5484-9559-b1d1c5b3d88c",
+      "name": "Orchestrator agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1120,
+        80
+      ],
+      "parameters": {
+        "promptType": "define",
+        "text": "=Slack message from user {{ $json.user }}:\n{{ $json.text }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are the triage orchestrator for Fernpay product feedback (fictional company).\nClassify one Slack message, call the right specialist, and return a single proposal for a human to approve.\n\nCategories:\n- bug: something that used to work, or should work, is broken. Call bug_specialist.\n- feature_request: a client or colleague asks for something new or changed. Call request_specialist.\n- noise: thanks, chatter, questions with no product ask, duplicates of a message you already handled. Call no tool.\n\nRules:\n- Call at most one specialist, once. Pass the message text unchanged.\n- Base the proposal only on the specialist's result. Do not invent issue ids, clients or numbers.\n- action is: comment_on_issue (bug duplicate), create_issue (new bug), log_request (feature request), none (noise).\n- Nothing is written anywhere until a human approves your proposal.",
+          "maxIterations": 6
+        }
+      }
+    },
+    {
+      "id": "1f869385-b6f5-5b86-9c7c-0c4d50f25eb4",
+      "name": "Claude (orchestrator)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.5,
+      "position": [
+        1000,
+        320
+      ],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "claude-sonnet-5-5"
+        },
+        "options": {
+          "maxTokensToSample": 2048
+        }
+      },
+      "credentials": {
+        "anthropicApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL",
+          "name": "Anthropic API key"
+        }
+      }
+    },
+    {
+      "id": "5bfb75d4-62a1-5ddb-9238-801efaf0013a",
+      "name": "bug_specialist",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1140,
+        320
+      ],
+      "parameters": {
+        "description": "Call for a bug report. Searches Linear for duplicates and drafts an issue with reproduction steps. Returns a proposal only.",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "fernpayTriageBug",
+          "cachedResultName": "Feedback triage: Bug specialist"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "feedback_text": "={{ $fromAI('feedback_text', `The Slack message, unchanged`, 'string') }}",
+            "reporter": "={{ $fromAI('reporter', `Who reported it, if known`, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "feedback_text",
+              "displayName": "feedback_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "reporter",
+              "displayName": "reporter",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      }
+    },
+    {
+      "id": "a8074c20-af40-5d2a-a5b6-cdc0cee09b8c",
+      "name": "request_specialist",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1280,
+        320
+      ],
+      "parameters": {
+        "description": "Call for a feature request. Looks up the client's tier and ARR, finds similar past requests, sizes demand. Returns a proposal only.",
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "fernpayTriageReq",
+          "cachedResultName": "Feedback triage: Request specialist"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "feedback_text": "={{ $fromAI('feedback_text', `The Slack message, unchanged`, 'string') }}",
+            "client_hint": "={{ $fromAI('client_hint', `Client name if the message mentions one, else empty`, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "feedback_text",
+              "displayName": "feedback_text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "client_hint",
+              "displayName": "client_hint",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      }
+    },
+    {
+      "id": "e287cc72-0bd7-5f06-9308-0d23cfac2660",
+      "name": "Proposal format",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1420,
+        320
+      ],
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"category\": {\n      \"type\": \"string\",\n      \"enum\": [\n        \"bug\",\n        \"feature_request\",\n        \"noise\"\n      ]\n    },\n    \"summary\": {\n      \"type\": \"string\",\n      \"description\": \"One sentence\"\n    },\n    \"action\": {\n      \"type\": \"string\",\n      \"enum\": [\n        \"comment_on_issue\",\n        \"create_issue\",\n        \"log_request\",\n        \"none\"\n      ]\n    },\n    \"linear_issue_identifier\": {\n      \"type\": [\n        \"string\",\n        \"null\"\n      ]\n    },\n    \"linear_issue_id\": {\n      \"type\": [\n        \"string\",\n        \"null\"\n      ]\n    },\n    \"title\": {\n      \"type\": [\n        \"string\",\n        \"null\"\n      ],\n      \"description\": \"New issue title or request title\"\n    },\n    \"body\": {\n      \"type\": [\n        \"string\",\n        \"null\"\n      ],\n      \"description\": \"Issue description, comment, or request quote\"\n    },\n    \"priority\": {\n      \"type\": [\n        \"integer\",\n        \"null\"\n      ]\n    },\n    \"client\": {\n      \"type\": [\n        \"string\",\n        \"null\"\n      ]\n    },\n    \"evidence\": {\n      \"type\": \"string\",\n      \"description\": \"What the specialist found: matched issue, similar requests, demand\"\n    },\n    \"confidence\": {\n      \"type\": \"string\",\n      \"enum\": [\n        \"high\",\n        \"medium\",\n        \"low\"\n      ]\n    }\n  },\n  \"required\": [\n    \"category\",\n    \"summary\",\n    \"action\",\n    \"evidence\",\n    \"confidence\"\n  ]\n}"
+      }
+    },
+    {
+      "id": "cd2a2aba-4b6e-5d86-a81e-d8b9d25152b9",
+      "name": "Noise?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1500,
+        80
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "9994bc9b-5d51-59ad-84b3-479c46b277cf",
+              "leftValue": "={{ $json.output.action }}",
+              "rightValue": "none",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "81518612-f0ae-5250-a1d9-e3ff20738729",
+      "name": "Note: classified as noise",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        1720,
+        -80
+      ],
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $('Config').first().json.review_channel_id }}",
+          "mode": "id"
+        },
+        "text": "=Triage: classified as noise, no action. \"{{ $('Normalize message').first().json.text.slice(0, 200) }}\"\nReason: {{ $json.output.summary }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "credentials": {
+        "slackApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL",
+          "name": "Slack bot token"
+        }
+      }
+    },
+    {
+      "id": "643cf43a-a461-52a3-b368-3773357479cf",
+      "name": "Build approval message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1720,
+        120
+      ],
+      "parameters": {
+        "jsCode": "// Freeze the exact proposal shown to the reviewer. Never publish a resume URL.\nconst cfg = $('Config').first().json;\nconst p = $json.output;\nconst ids = String(cfg.approver_user_ids || '').split(',').map(s => s.trim()).filter(Boolean);\nif (!ids.length || ids.some(id => !/^[UW][A-Z0-9]{8,}$/.test(id))) {\n  throw new Error('Configure a nonempty list of Slack approver user IDs before running.');\n}\nif (!/^[CGD][A-Z0-9]{8,}$/.test(String(cfg.review_channel_id || ''))) {\n  throw new Error('Configure the review channel ID before running.');\n}\nif (!p || !['create_issue', 'comment_on_issue', 'log_request'].includes(p.action)) {\n  throw new Error('Invalid proposal action.');\n}\nif (typeof p.title !== 'string' || !p.title.trim() || p.title.length > 200 ||\n    typeof p.body !== 'string' || !p.body.trim() || p.body.length > 2000) {\n  throw new Error('Proposal needs a complete title (up to 200 characters) and body (up to 2000). Resubmit a shorter proposal.');\n}\nif (p.action === 'comment_on_issue' && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(p.linear_issue_id || ''))) {\n  throw new Error('A duplicate comment needs a valid Linear issue ID.');\n}\nif (p.priority != null && (!Number.isInteger(p.priority) || p.priority < 0 || p.priority > 4)) {\n  throw new Error('Invalid issue priority.');\n}\nconst target = p.action === 'log_request' ? cfg.feedback_db_id : cfg.linear_team_id;\nif (typeof target !== 'string' || !/^[0-9a-f-]{32,36}$/i.test(target)) {\n  throw new Error('Configure the destination database or team ID before requesting approval.');\n}\nconst proposal = {action:p.action,title:p.title,body:p.body,priority:p.priority ?? 0,\n  linear_issue_id:p.linear_issue_id ?? null,linear_issue_identifier:p.linear_issue_identifier ?? null,\n  client:p.client ?? null,source_text:$('Normalize message').first().json.text};\nconst issuedAt = new Date().toISOString();\n// Escape Slack markup in user/model content so it cannot forge links or mentions.\nconst esc = v => String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');\nconst message = ['Feedback triage proposal', 'Action: '+proposal.action,\n  'Title: '+proposal.title, 'Destination ID: '+target,\n  proposal.linear_issue_id ? 'Existing issue ID: '+proposal.linear_issue_id : '',\n  'Client: '+(proposal.client || 'unspecified'), 'Priority: '+proposal.priority,\n  'Body:', proposal.body,\n  'Approve the exact proposal above, or reject it and resubmit corrected feedback.',\n  cfg.enable_writes === true ? 'Writes enabled for this run.' : 'DRY RUN: external business writes disabled.']\n  .filter(Boolean).map(esc).join('\\n');\nif (message.length > 2800) throw new Error('Escaped review message is too long. Resubmit a shorter proposal.');\nreturn [{json:{proposal,issuedAt,message,approverIds:ids,\n  reviewChannel:cfg.review_channel_id,destinationId:target,enableWrites:cfg.enable_writes === true}}];\n"
+      }
+    },
+    {
+      "id": "4794e81a-26ff-5958-b0fe-a142e939e643",
+      "name": "Wait for authenticated Slack approval",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        1940,
+        120
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendAndWait",
+        "authentication": "accessToken",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $('Build approval message').first().json.reviewChannel }}",
+          "mode": "id"
+        },
+        "message": "={{ $json.message }}",
+        "responseType": "approval",
+        "captureResponder": true,
+        "approvers": "={{ $('Build approval message').first().json.approverIds }}",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double",
+            "approveLabel": "Approve",
+            "disapproveLabel": "Reject"
+          }
+        },
+        "postDecisionBehavior": "showOutcome",
+        "unauthorizedReplyText": "Only the configured reviewers can approve this proposal.",
+        "options": {
+          "appendAttribution": false,
+          "limitWaitTime": {
+            "values": {
+              "limitType": "afterTimeInterval",
+              "resumeAmount": 2,
+              "resumeUnit": "days"
+            }
+          }
+        }
+      },
+      "credentials": {
+        "slackApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL",
+          "name": "Slack bot token"
+        }
+      },
+      "webhookId": "e6275569-88e9-4cb4-87b7-3f07838c6f06"
+    },
+    {
+      "id": "01821e3c-48db-586f-a1ef-8bc9a0f0763f",
+      "name": "Decision",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        2380,
+        120
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "f7c96519-5dc4-53fa-8046-3b6c1ac76113",
+                    "leftValue": "={{ $json.gate_status }}",
+                    "rightValue": "approved",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "approved"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "db61e59c-875d-5b45-938b-a22aa511eaf9",
+                    "leftValue": "={{ $json.gate_status }}",
+                    "rightValue": "rejected",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "rejected"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "cc0e9701-0229-5fa0-a888-4aab70a35aea",
+                    "leftValue": "={{ $json.gate_status }}",
+                    "rightValue": "dry_run",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "dry_run"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Blocked"
+        }
+      }
+    },
+    {
+      "id": "de38c782-d327-5af6-8961-dbf45b06388b",
+      "name": "Final proposal",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2820,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Only use the frozen proposal that was actually shown for approval.\nif ($json.gate_status !== 'approved' || !$json.approved_by) {\n  throw new Error('No authenticated approval. External writes blocked.');\n}\nconst prepared = $('Build approval message').first().json;\nif (prepared.enableWrites !== true || !prepared.approverIds.includes($json.approved_by)) {\n  throw new Error('Reviewer or write permission changed. External writes blocked.');\n}\nreturn [{json:{...prepared.proposal,approved_by:$json.approved_by,\n  responded_at:$json.responded_at,destination_id:prepared.destinationId}}];\n"
+      }
+    },
+    {
+      "id": "8e03a0d0-ec76-5cfd-a8b0-ec7770007af8",
+      "name": "Which write?",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        3040,
+        0
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "5de5dc49-f462-5958-9cb2-dad66dd542df",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "create_issue",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Create issue"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "49b78ee6-7db0-5eeb-86c6-d30cf33712cd",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "comment_on_issue",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Comment"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "7dc2f564-ccf5-5cd4-afc1-dfeb6f09963b",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "log_request",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Log request"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a6c62b8f-5857-538c-a816-9b26d0b6ee5c",
+      "name": "Linear: create issue",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        3280,
+        -160
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.linear.app/graphql",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "linearApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ query: \"mutation Create($teamId: String!, $title: String!, $description: String, $priority: Int) {\\n  issueCreate(input: { teamId: $teamId, title: $title, description: $description, priority: $priority }) {\\n    success issue { identifier url }\\n  }\\n}\", variables: { teamId: $json.destination_id, title: $json.title, description: $json.body + '\\n\\n---\\nFrom Slack via feedback triage, approved by a human.', priority: $json.priority ?? 0 } }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "linearApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL",
+          "name": "Linear API key"
+        }
+      }
+    },
+    {
+      "id": "d0abe487-ea16-5ac1-baad-464112453fd1",
+      "name": "Linear: add comment",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        3280,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.linear.app/graphql",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "linearApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ query: \"mutation Comment($issueId: String!, $body: String!) {\\n  commentCreate(input: { issueId: $issueId, body: $body }) { success comment { url } }\\n}\", variables: { issueId: $json.linear_issue_id, body: $json.body + '\\n\\n_From Slack via feedback triage, approved by a human._' } }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "linearApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL",
+          "name": "Linear API key"
+        }
+      }
+    },
+    {
+      "id": "5fa44bd1-951b-500f-92e7-a63c213798ca",
+      "name": "Notion: log request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        3280,
+        160
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.notion.com/v1/pages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "notionApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ parent: { database_id: $json.destination_id }, properties: { 'Request': { title: [{ text: { content: $json.title } }] }, 'Client': $json.client ? { select: { name: $json.client } } : undefined, 'Quote': { rich_text: [{ text: { content: ($json.body || $json.source_text).slice(0, 1900) } }] }, 'Source': { select: { name: 'Slack' } }, 'Received': { date: { start: $now.toISODate() } } } }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "notionApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL",
+          "name": "Notion integration"
+        }
+      }
+    },
+    {
+      "id": "89c00429-70fa-5ca5-b35e-3a5b955e3c05",
+      "name": "Confirm: issue created",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        3500,
+        -160
+      ],
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $('Config').first().json.review_channel_id }}",
+          "mode": "id"
+        },
+        "text": "=Approved. Created {{ $json.data.issueCreate.issue.identifier }}: {{ $json.data.issueCreate.issue.url }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "credentials": {
+        "slackApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL",
+          "name": "Slack bot token"
+        }
+      }
+    },
+    {
+      "id": "e3dee054-d4fc-5798-b2dc-4056a92e6fd7",
+      "name": "Confirm: comment added",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        3500,
+        0
+      ],
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $('Config').first().json.review_channel_id }}",
+          "mode": "id"
+        },
+        "text": "=Approved. Comment added: {{ $json.data.commentCreate.comment.url }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "credentials": {
+        "slackApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL",
+          "name": "Slack bot token"
+        }
+      }
+    },
+    {
+      "id": "820842ae-9b4c-5546-aee9-70cf3b57ac6e",
+      "name": "Confirm: request logged",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        3500,
+        160
+      ],
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $('Config').first().json.review_channel_id }}",
+          "mode": "id"
+        },
+        "text": "=Approved. Logged in Client feedback: {{ $json.url }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "credentials": {
+        "slackApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL",
+          "name": "Slack bot token"
+        }
+      }
+    },
+    {
+      "id": "2639205f-d47e-5749-9114-0a137b679f11",
+      "name": "Note: rejected",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        2600,
+        300
+      ],
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $('Config').first().json.review_channel_id }}",
+          "mode": "id"
+        },
+        "text": "=Rejected. Nothing was written to Linear or Notion.",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "credentials": {
+        "slackApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL",
+          "name": "Slack bot token"
+        }
+      }
+    },
+    {
+      "id": "15006b92-b44f-5677-a68a-8fd80af221a1",
+      "name": "Note: no decision",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        2600,
+        460
+      ],
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $('Config').first().json.review_channel_id }}",
+          "mode": "id"
+        },
+        "text": "=Proposal blocked or expired. Nothing was written to Linear or Notion.",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "credentials": {
+        "slackApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL",
+          "name": "Slack bot token"
+        }
+      }
+    },
+    {
+      "id": "82be3d62-8e73-5dea-963d-0a6eb898c547",
+      "name": "Design note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        400,
+        -340
+      ],
+      "parameters": {
+        "width": 900,
+        "height": 260,
+        "color": 7,
+        "content": "## Authenticated approvals\nNative Slack send-and-wait with responder capture, a required approver list, and signed Slack callbacks. Validate approval checks identity, channel and expiry. Missing data blocks writes. No custom resume URLs or free-text edit route. Correct a proposal by rejecting and resubmitting. Business writes default off."
+      }
+    },
+    {
+      "id": "0b570994-0efc-4bcd-8fc0-aec607c76864",
+      "name": "Validate approval",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2160,
+        120
+      ],
+      "parameters": {
+        "jsCode": "// Slack signature verification is performed by the native Slack approval node.\n// This check independently binds the response to the configured reviewer, channel and window.\nconst prepared = $('Build approval message').first().json;\nconst data = $json.data;\nconst now = Date.now();\nconst issued = Date.parse(prepared.issuedAt);\nconst responded = Date.parse(data?.respondedAt);\nconst maxAge = 2 * 24 * 60 * 60 * 1000;\nlet status = 'invalid';\nif (!data || typeof data.approved !== 'boolean') status = 'timeout_or_invalid';\nelse if (!Array.isArray(prepared.approverIds) || prepared.approverIds.length === 0 ||\n  data.responder?.source !== 'slack' || !prepared.approverIds.includes(data.responder?.id) ||\n  data.channel !== prepared.reviewChannel || typeof data.messageId !== 'string' || !/^\\d+\\.\\d+$/.test(data.messageId)) status = 'unauthorized';\nelse if (!Number.isFinite(issued) || !Number.isFinite(responded) ||\n  now < issued || now - issued > maxAge || responded < issued ||\n  responded > now + 5 * 60 * 1000 || responded - issued > maxAge) status = 'expired';\nelse if (data.approved === false) status = 'rejected';\nelse status = prepared.enableWrites === true ? 'approved' : 'dry_run';\nreturn [{json:{gate_status:status,approved_by:status === 'approved' ? data.responder.id : null,\n  responded_at:Number.isFinite(responded) ? data.respondedAt : null}}];\n"
+      }
+    },
+    {
+      "id": "a822d8b9-a9e3-4dac-85e6-03e9d3ed9f03",
+      "name": "Note: dry run",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        2600,
+        400
+      ],
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $('Config').first().json.review_channel_id }}",
+          "mode": "id"
+        },
+        "text": "=Authenticated approval received in dry-run mode. Nothing was written to Linear or Notion.",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "credentials": {
+        "slackApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL",
+          "name": "Slack bot token"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "New message in feedback channel": {
+      "main": [
+        [
+          {
+            "node": "Normalize message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Test with a sample message": {
+      "main": [
+        [
+          {
+            "node": "Sample feedback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sample feedback": {
+      "main": [
+        [
+          {
+            "node": "Normalize message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize message": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Human message?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Human message?": {
+      "main": [
+        [
+          {
+            "node": "Orchestrator agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Orchestrator agent": {
+      "main": [
+        [
+          {
+            "node": "Noise?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude (orchestrator)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Orchestrator agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "bug_specialist": {
+      "ai_tool": [
+        [
+          {
+            "node": "Orchestrator agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "request_specialist": {
+      "ai_tool": [
+        [
+          {
+            "node": "Orchestrator agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Proposal format": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Orchestrator agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Noise?": {
+      "main": [
+        [
+          {
+            "node": "Note: classified as noise",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build approval message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build approval message": {
+      "main": [
+        [
+          {
+            "node": "Wait for authenticated Slack approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decision": {
+      "main": [
+        [
+          {
+            "node": "Final proposal",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Note: rejected",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Note: dry run",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Note: no decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Final proposal": {
+      "main": [
+        [
+          {
+            "node": "Which write?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Which write?": {
+      "main": [
+        [
+          {
+            "node": "Linear: create issue",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Linear: add comment",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notion: log request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Linear: create issue": {
+      "main": [
+        [
+          {
+            "node": "Confirm: issue created",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Linear: add comment": {
+      "main": [
+        [
+          {
+            "node": "Confirm: comment added",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion: log request": {
+      "main": [
+        [
+          {
+            "node": "Confirm: request logged",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for authenticated Slack approval": {
+      "main": [
+        [
+          {
+            "node": "Validate approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate approval": {
+      "main": [
+        [
+          {
+            "node": "Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "UTC"
+  },
+  "pinData": {},
+  "active": false
+}
