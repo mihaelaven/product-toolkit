@@ -50,7 +50,7 @@ Screenshots in `docs/images/` show the browser states (fictional sample data for
 - Claude Code plugin discovery, installation in a real user account, and language-model quality across the example prompts.
 - Claude artifact sampling, database/user capabilities, Notion MCP reads or writes, and `ArtifactData` agent-to-app handoff.
 - Scheduled agent execution in Desktop, cloud, or `/loop`.
-- n8n import, account-specific model availability, authenticated Slack callback routing, timeout/rejection runtime behaviour, API compatibility, and live Slack/Linear/Notion writes.
+- Complete n8n workflow deployments, timeout behaviour in a deployed schedule, model-driven triage, and live Linear/Notion business writes. Native Slack callback approval/rejection and the limited read-only checks are recorded below.
 - Large datasets, pagination, retries, idempotency, browser accessibility, and cross-browser behaviour.
 
 The [example scenarios](../examples/README.md) provide the acceptance checklist for those follow-up checks. The individual app and workflow READMEs document current limitations. Local passes should not be presented as production or integration certification.
@@ -66,6 +66,7 @@ Observed in n8n 2.35.7:
 - The hardened triage template imported into a separate, inactive test workflow. Its native Slack node exposed responder capture, reviewer restriction and the two-day timeout settings.
 - Ten simulated approval scenarios executed successfully inside the n8n Code node runtime, with zero external calls. This checks the exported guards in n8n, not Slack signature verification.
 - Read-only HTTP nodes successfully queried Linear teams, retrieved a shared Notion test page and listed Anthropic models. No private identifiers, credentials or response data are included here.
-- The live Slack approval round trip and model generation remain incomplete. Deployment-specific channel membership, callback configuration and account access must be checked using the integration checklist.
+- Live Slack approval and rejection round trips passed in an isolated manual-only workflow. The native node returned the configured reviewer identity; the guard returned `dry_run` after approval and `rejected` after rejection. The test workflow contained no Linear or Notion write nodes.
+- Paid model-generation testing was deferred. Real business writes, full model-driven triage and Claude artifact integrations remain unverified. Deployment-specific membership, callback configuration, credentials and destinations still require setup by each user.
 
-These observations establish import/runtime and read-API compatibility. They do not establish end-to-end approval, business-write correctness, or production readiness.
+These observations establish import/runtime, read-API and live Slack approve/reject compatibility for the tested setup. They do not establish model-driven triage quality, business-write correctness, replay/unauthorized-user behaviour in a multi-user deployment, or production readiness.

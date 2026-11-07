@@ -4,6 +4,8 @@ Practical tools for product managers: turn research into decisions, meetings int
 
 Eight Claude skills, two agent definitions, four companion apps, and two n8n workflow examples. Use one piece or combine the ones that fit your work.
 
+**Experimental toolkit.** Local checks, n8n import/runtime checks, read-only API checks, and live Slack approve/reject dry runs have passed. Paid model tests, real business writes, and Claude artifact integrations remain unverified. See the [validation record](docs/validation.md) for exact coverage.
+
 ## Start with a problem
 
 | I want to… | Start here | Companion |
