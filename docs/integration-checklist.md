@@ -1,6 +1,6 @@
 # Connected acceptance checklist
 
-Status: **pending access to a test n8n instance and compatible Claude artifact environment**. Local simulated tests do not complete this checklist. Use fictional data and disposable destinations. Keep real production triggers disabled.
+Status: **n8n import, isolated guard-runtime checks and three read-only API checks observed; live approval, model generation, business writes and Claude artifact checks remain pending**. Local simulated tests do not complete this checklist. Use fictional data and disposable destinations. Keep real production triggers disabled.
 
 ## Feedback triage
 

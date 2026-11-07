@@ -58,3 +58,14 @@ The [example scenarios](../examples/README.md) provide the acceptance checklist 
 ## Publication hardening
 
 Custom GET approval links and the free-text edit route were replaced with native Slack interactive approvals, identity capture, an explicit allowlist and a second authorization guard. Business writes default off. This implementation was checked against the [official n8n approval guide](https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.slack/approvals). Native signature verification and live API writes still require the [connected checklist](integration-checklist.md). The [publication plan](publication.md) uses a new clean repository and preserves the original privately.
+
+## n8n compatibility checks (2026-11-07)
+
+Observed in n8n 2.35.7:
+
+- The hardened triage template imported into a separate, inactive test workflow. Its native Slack node exposed responder capture, reviewer restriction and the two-day timeout settings.
+- Ten simulated approval scenarios executed successfully inside the n8n Code node runtime, with zero external calls. This checks the exported guards in n8n, not Slack signature verification.
+- Read-only HTTP nodes successfully queried Linear teams, retrieved a shared Notion test page and listed Anthropic models. No private identifiers, credentials or response data are included here.
+- The live Slack approval round trip and model generation remain incomplete. Deployment-specific channel membership, callback configuration and account access must be checked using the integration checklist.
+
+These observations establish import/runtime and read-API compatibility. They do not establish end-to-end approval, business-write correctness, or production readiness.
