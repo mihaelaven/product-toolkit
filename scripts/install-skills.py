@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
-"""Install selected skills with their examples and companion app assets."""
+"""Install selected PM skills with their bundled examples."""
 import argparse
 from pathlib import Path
 import shutil
 
 ROOT = Path(__file__).resolve().parents[1]
-APPS = {name: ROOT / 'apps' / name / 'index.html' for name in
-        ('call-task-hub', 'capacity-timeline-planner')}
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -38,18 +36,14 @@ def main():
             parser.error('Destination is not a directory: ' + str(target))
         if target.exists() and not args.overwrite:
             parser.error('Already installed: ' + str(target) + '; use --overwrite to replace')
-        if name in APPS and not APPS[name].is_file():
-            parser.error('Companion app is missing: ' + str(APPS[name]))
     destination.mkdir(parents=True, exist_ok=True)
     for name in selected:
         target = destination / name
         if target.exists():
             shutil.rmtree(target)
         shutil.copytree(available[name], target)
-        if name in APPS:
-            (target / 'assets').mkdir(exist_ok=True)
-            shutil.copy2(APPS[name], target / 'assets' / 'index.html')
         print('Installed ' + name + ': ' + str(target))
 
 if __name__ == '__main__':
     main()
+

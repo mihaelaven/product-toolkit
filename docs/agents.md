@@ -4,12 +4,12 @@ These are specialist instruction files, not background services. Installing them
 
 | Agent | Inputs | Output and environment |
 |---|---|---|
-| [scope-drift-checker](scope-drift-checker.md) | Scope, meeting notes, period, destination | Report in chat by default; optional named report destination and Notion findings database through tools available to the runner |
-| [pm-news-digest](pm-news-digest.md) | Time window, sources, optional digest store | Dated, sourced report; artifact-store writes require `ArtifactData` in the runner |
+| [scope-drift-checker](../agents/scope-drift-checker.md) | Scope, meeting notes, period, destination | Report in chat by default; optional named report destination and Notion findings database through tools available to the runner |
+| [pm-news-digest](../agents/pm-news-digest.md) | Time window, sources, optional digest store | Dated, sourced report; artifact-store writes require `ArtifactData` in the runner |
 
 ## Install and run once
 
-Follow [installation](../docs/installation.md) to load the plugin or copy the two agent files individually. In a fresh Claude Code session, ask:
+Follow [installation](installation.md) to load the plugin or copy the two agent files individually. In a fresh Claude Code session, ask:
 
 ```text
 Use the scope-drift-checker agent.
@@ -46,6 +46,7 @@ For a session-only trial, after loading the agent and setting its inputs:
 /loop 1d Use the pm-news-digest agent for the last 24 hours; return the report here, with no digest store.
 ```
 
-The app integration is a separate step: [Drift Tracker](../apps/drift-tracker/) needs a findings database and artifact Notion tools; [PM News Desk](../apps/pm-news-desk/) needs a runner with `ArtifactData` access to its store. Scheduling in Claude Code alone does not grant these capabilities.
+The app integration is a separate step: [Drift Tracker](https://github.com/mihaelaven/drift-tracker) needs a findings database and artifact Notion tools; [PM News Desk](https://github.com/mihaelaven/pm-news-desk) needs a runner with `ArtifactData` access to its store. Scheduling in Claude Code alone does not grant these capabilities.
 
 Scheduled runs and connected agent-to-app handoffs have not been exercised in this repository's validation record.
+

@@ -81,4 +81,3 @@ Blocked: <source> (<reason>), ...
 - Say which sources were blocked, in the run record and the report. Never cover a blocked source with remembered or invented content.
 - Write plainly: short sentences, no em dashes, no hype.
 - Write to the digest store named in your instructions and nowhere else. Send no messages.
-

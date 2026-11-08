@@ -210,4 +210,3 @@ Create issues only after the user confirms. Apply their edits and show the chang
 Create the confirmed issues through the Linear connector, epics first so children can take the parent. Then add the relations and any agreed comments on existing issues.
 
 Report back with each new issue's identifier, title and link, plus the relations added. When a creation fails, say which one and why, and keep the draft so the user can retry.
-

@@ -58,4 +58,3 @@ Close with:
 ## 4. Save
 
 Offer to save the analysis where the user keeps research. With a Notion connector, create a page and link each finding to its source interview.
-

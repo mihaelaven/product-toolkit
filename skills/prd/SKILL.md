@@ -80,4 +80,3 @@ End with the three changes that would most improve the document.
 ## 5. Where to save it
 
 Save to the place the user names. With a Notion or Linear connector available, offer to create the PRD there and link it to the related project.
-

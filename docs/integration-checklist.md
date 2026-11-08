@@ -29,13 +29,15 @@ Before enabling the event trigger, test create issue, comment on duplicate issue
 
 Use a test Slack channel and Notion page. Run empty and populated weeks; compare every output identifier with Linear. Check workflow timezone and schedule, API errors, and repeated execution. More than 100 issues or a large Notion block set needs pagination/batching before use at that scale.
 
-## Claude companions
+## Reporting agents
 
-- Call Task Hub: grant artifact sampling and verify AI extraction/criteria on fictional text; Slack/Linear buttons remain demo-only.
-- Drift Tracker: connect a test findings database, compare a row with its source, update a status, and verify the Notion row. Run the agent twice and confirm accepted findings retain their status.
-- PM News Desk: grant database/user capabilities; run the news agent with ArtifactData access to the same store; verify items, an empty-run record, stable IDs and per-user read marks.
-- Scheduled agents: confirm source access, timezone, displayed next run, first scheduled output, and blocked-source reporting in the actual host.
+- Run the scope-review agent against the fictional scope and meeting examples. Compare source quotes and suggested edits. For a connected Notion test, run twice and confirm that accepted findings preserve their status.
+- Run the news agent against reachable public sources and a deliberately blocked source. Check dates, coverage and repeat-story handling.
+- For scheduled runs, verify source access, timezone, the displayed next run, the first output and failure reporting in the actual host.
+
+Artifact store and app connections belong to the public [Drift Tracker](https://github.com/mihaelaven/drift-tracker) and [PM News Desk](https://github.com/mihaelaven/pm-news-desk) testing records.
 
 ## Recording a pass
 
 Record the date, host/version, scenario, expected result and actual result in a private test log. Keep credentials, personal responder details and private workspace URLs out of public commits. Update the public validation table with scenario outcomes only after they have been observed.
+

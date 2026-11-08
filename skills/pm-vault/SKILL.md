@@ -43,4 +43,3 @@ Revisit when: a date or a trigger (a metric threshold, a contract renewal, a lau
 ## Sources
 
 Decisions often surface in meeting transcripts, Slack threads and Linear issues. When the user points to one, read it through their connector, pick out the decisions, and offer each as a draft entry.
-

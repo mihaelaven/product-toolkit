@@ -1,67 +1,62 @@
 # PM Toolkit
 
-Practical tools for product managers: turn research into decisions, meetings into follow-up work, and delivery plans into something you can check.
+Skills, reporting agents and workflow examples for product managers. Use them to turn evidence into decisions, write clearer issues and review delivery work.
 
-Eight Claude skills, two agent definitions, four companion apps, and two n8n workflow examples. Use one piece or combine the ones that fit your work.
+This repository contains **six skills, two reporting agents and two n8n workflow examples**.
 
-**Experimental toolkit.** Local checks, n8n import/runtime checks, read-only API checks, and live Slack approve/reject dry runs have passed. Paid model tests, real business writes, and Claude artifact integrations remain unverified. See the [validation record](docs/validation.md) for exact coverage.
+**Status: experimental.** Local tests, feedback-workflow import checks, read-only API checks and live Slack approval dry runs have passed. Model quality, real business writes and scheduled runs still need testing. See the [validation record](docs/validation.md).
 
-## Start with a problem
+## Choose a task
 
-| I want to… | Start here | Companion |
-|---|---|---|
-| Turn an idea into a clear brief | [PRD skill](skills/prd/) | One-page brief or full PRD |
-| Check whether interviews support a hypothesis | [Client validation analysis](skills/client-validation-analysis/) | Evidence table and next questions |
-| Understand what clients need | [Feature request triage](skills/feature-request-triage/) | Ranked needs with source requests |
-| Turn a call into follow-up work | [Call Task Hub skill](skills/call-task-hub/) | [Call Task Hub app](apps/call-task-hub/) |
-| File consistent issues | [Linear task creation](skills/linear-task-creation/) | Duplicate checks and reviewed drafts |
-| Check whether a release date is feasible | [Capacity planning skill](skills/capacity-timeline-planner/) | [Capacity planner app](apps/capacity-timeline-planner/) |
-| Catch changes to agreed scope | [Scope drift agent](agents/scope-drift-checker.md) | [Drift Tracker app](apps/drift-tracker/) |
-| Remember why a decision was made | [PM Vault](skills/pm-vault/) | A decision log in Markdown or Notion |
-| Stay informed | [PM news agent](agents/pm-news-digest.md) | [PM News Desk app](apps/pm-news-desk/) |
-| Process incoming Slack feedback | [Feedback triage workflow](workflows/02-feedback-triage/) | Proposed actions for human review |
-| Share what shipped | [Weekly shipped digest](workflows/01-shipped-digest/) | Linear → Slack and Notion, using fixed rules |
-| Keep product copy consistent | [Content guidelines](skills/content-guidelines/) | Optional editorial helper |
+| Task | Start here |
+|---|---|
+| Write a product brief | [PRD](skills/prd/) |
+| Assess interview evidence | [Client validation analysis](skills/client-validation-analysis/) |
+| Group and rank customer needs | [Feature request triage](skills/feature-request-triage/) |
+| Draft consistent Linear issues | [Linear task creation](skills/linear-task-creation/) |
+| Keep a decision log | [PM Vault](skills/pm-vault/) |
+| Write consistent product copy | [Content guidelines](skills/content-guidelines/) |
+| Compare scope with meeting decisions | [Scope drift agent](agents/scope-drift-checker.md) |
+| Gather a dated news digest | [PM news agent](agents/pm-news-digest.md) |
+| Review incoming Slack feedback | [Feedback triage workflow](workflows/02-feedback-triage/) |
+| Share completed Linear issues | [Weekly shipped digest](workflows/01-shipped-digest/) |
 
-## Try one skill
+## Install one skill
 
-Requires Python 3.9+ for this installer and Claude Code to use the installed skill.
+Use Python 3.9 or newer and a compatible Claude Code installation:
 
-```bash
-git clone https://github.com/mihaelaven/pm-toolkit-public.git pm-toolkit
-cd pm-toolkit
+```sh
+git clone https://github.com/mihaelaven/pm-toolkit-public.git
+cd pm-toolkit-public
 python3 scripts/install-skills.py prd
 ```
 
-In a new Claude Code session, ask: **“Use the prd skill to write a one-page brief for…”**
+Start a fresh Claude Code session and ask: “Use the prd skill to write a one-page brief for…”
 
-The installer copies only the selected skill. For Call Task Hub and Capacity Timeline Planner, it also bundles the companion app. See [installation](docs/installation.md) for all skills, a custom destination, agents, and loading the whole plugin.
+The installer copies the selected skill and its examples. See [installation](docs/installation.md) for all six skills, custom destinations, agents and plugin loading.
 
-## What runs where
+## Standalone apps
 
-| Component | Environment | Current capability |
-|---|---|---|
-| Skills | Claude with the instruction file and any required tools | Instructions for an assisted task; connector availability varies by host |
-| Agent definitions | Claude Code, or their instructions supplied to another compatible host | Run on request; recurring execution needs separate scheduling |
-| Call Task Hub app | Ordinary browser; optional Claude artifact sampling | Local task management and keyword extraction; Slack and Linear actions are simulations |
-| Capacity planner app | Ordinary browser | Local scheduling simulation; team and project data entered manually |
-| Drift Tracker app | Browser demo; Claude artifact for Notion access | Sample review locally; implemented Notion read/status-update path requires artifact MCP access |
-| PM News Desk app | Claude artifact with database/user capabilities | Displays stored digests; ordinary browser shows an unavailable-store state |
-| n8n workflows | Your configured n8n instance | Importable examples requiring credentials, IDs, and end-to-end verification |
+The apps and their app-specific skills now live in public repositories:
 
-Publishing an HTML file as an artifact does not automatically add integrations. Each app's README lists its actual capabilities and setup.
+- [Call Task Hub](https://github.com/mihaelaven/call-task-hub): transcript actions and follow-ups.
+- [Capacity Timeline Planner](https://github.com/mihaelaven/capacity-timeline-planner): local capacity and release scenarios.
+- [Drift Tracker](https://github.com/mihaelaven/drift-tracker): review scope findings.
+- [PM News Desk](https://github.com/mihaelaven/pm-news-desk): read a stored news digest.
 
-## Explore and evaluate
+Each app has its own setup guide, limitations and testing record. The toolkit's scope and news agents also work on their own, returning a report in chat.
 
-- [Examples](examples/README.md): fictional inputs and expected output characteristics for every skill and agent.
-- [Validation](docs/validation.md): checks run, manual smoke tests, and what remains unverified.
-- [Agents and scheduling](agents/README.md): run once first, then configure a schedule.
-- [Repository boundaries](docs/structure.md): why these components stay together and when to split one out.
+## Review before use
 
-The [Competitor Delta Monitor](https://github.com/mihaelaven/competitor-delta-monitor) lives separately because it has its own capture pipeline, dependencies, prompts, and evaluation set. Access depends on that repository's visibility.
+Start with [fictional examples](examples/README.md). Check source quotes, owners, dates and proposed destinations. Use a test workspace for connected writes.
 
-## Design choices
+- [Testing and remaining checks](docs/validation.md)
+- [Connected acceptance checklist](docs/integration-checklist.md)
+- [Agents and scheduling](docs/agents.md)
+- [Repository structure](docs/structure.md)
+- [Publication and privacy](docs/publication.md)
 
-Keep evidence attached to recommendations. Mark unknowns instead of inventing details. Use code for arithmetic and predictable transformations. Review proposed external actions before committing them where the component supports that workflow.
+This public release contains reusable templates and fictional examples. The original research archive stays private. See the publication guide for the review process.
 
-MIT license. Prototype and example status is recorded in [validation](docs/validation.md); passing local checks is not a claim that every connected workflow has been exercised.
+MIT license. Keep evidence attached to recommendations and review external actions before approving them.
+

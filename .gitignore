@@ -3,3 +3,9 @@
 __pycache__/
 node_modules/
 
+
+# Local credentials and Python environments
+.env
+.env.*
+.venv/
+venv/

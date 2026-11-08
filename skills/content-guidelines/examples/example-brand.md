@@ -61,4 +61,3 @@ Scope includes authorship, taste, perception, nature, architecture, imagined fut
 - Keep editorial approval and publication authorization distinct.
 - Confirm the target account as @examplebrand.
 - Use UTC for user-facing publishing times.
-

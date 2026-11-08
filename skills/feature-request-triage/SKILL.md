@@ -57,4 +57,3 @@ Also list clusters to decline or park, with the reason, and single-client reques
 ## 6. Hand off, on request
 
 Offer to create Linear issues or a project for the recommended clusters, linking every source request, and to draft Slack replies telling clients their request is tracked. Show each draft and create or send it after the user confirms.
-

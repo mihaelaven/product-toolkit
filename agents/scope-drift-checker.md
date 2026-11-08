@@ -74,4 +74,3 @@ Otherwise add a new row with Status New and First seen and Last seen set to toda
 - Quote sources exactly and link each one.
 - Suggest changes only. A person accepts each change before anyone edits the scope.
 - Deliver the report to the destination named in your instructions, and findings to the findings database when one is named. Send nothing anywhere else.
-

@@ -13,15 +13,15 @@ class InstallTests(unittest.TestCase):
         return subprocess.run([sys.executable, str(SCRIPT), '--destination', str(destination), *args],
                               capture_output=True, text=True)
 
-    def test_all_skills_keep_examples_and_apps(self):
+    def test_all_skills_keep_examples(self):
         with tempfile.TemporaryDirectory() as temp:
             dest = Path(temp)
             result = self.run_installer(dest, '--all')
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual(len(list(dest.glob('*/SKILL.md'))), 8)
-            for name in ('call-task-hub', 'capacity-timeline-planner'):
-                self.assertEqual((dest/name/'assets/index.html').read_bytes(),
-                                 (ROOT/'apps'/name/'index.html').read_bytes())
+            self.assertEqual(len(list(dest.glob('*/SKILL.md'))), 6)
+            self.assertEqual({p.parent.name for p in dest.glob('*/SKILL.md')}, {
+                'prd', 'client-validation-analysis', 'feature-request-triage',
+                'linear-task-creation', 'pm-vault', 'content-guidelines'})
             self.assertTrue((dest/'content-guidelines/examples/example-brand.md').is_file())
             self.assertFalse((dest/'README.md').exists())
 
@@ -39,9 +39,11 @@ class InstallTests(unittest.TestCase):
 
     def test_unknown_name_and_source_destination_are_rejected(self):
         with tempfile.TemporaryDirectory() as temp:
-            self.assertNotEqual(self.run_installer(Path(temp), '../prd').returncode, 0)
+            for name in ('../prd', 'call-task-hub', 'capacity-timeline-planner'):
+                self.assertNotEqual(self.run_installer(Path(temp), name).returncode, 0)
             self.assertEqual(list(Path(temp).iterdir()), [])
         self.assertNotEqual(self.run_installer(ROOT/'skills', 'prd', '--overwrite').returncode, 0)
 
 if __name__ == '__main__':
     unittest.main()
+

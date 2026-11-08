@@ -32,15 +32,9 @@ Input: “Draft an issue: exporting an empty report produces a server error. Exp
 
 Expected: bug draft with expected/actual, known reproduction information, and the unknown version marked. With a connector, discover workspace conventions and search duplicates first. Without one, provide a draft and explain that duplicate checks and live fields remain unavailable. Create no issue without approval.
 
-## Call Task Hub
+## Standalone app examples
 
-Use [call-task-hub.json](call-task-hub.json). The browser keyword extractor should return the three listed items, resolve tomorrow to November 7, leave the decision undated, and exclude the negative promise. The automated test checks these fields against the actual app extractor.
-
-Known limit: the simple extractor maps Maya to “You” and does not resolve the later question's literal “Maya” mention back to “You”; its owner remains unassigned in this fixture. Review owners before handoff. The language-model skill may resolve the person from context.
-
-## Capacity Timeline Planner
-
-Use [capacity-timeline-planner.json](capacity-timeline-planner.json) as a small scenario specification. Enter Sam as the only frontend developer, 100% focus, zero leave, and one person-week of frontend work starting Monday November 2. Expected completion: Friday November 6. A second identical project sharing Sam finishes the following week. Removing the frontend assignment blocks the project. The automated tests use this scenario directly.
+The app fixtures and browser logic tests live with [Call Task Hub](https://github.com/mihaelaven/call-task-hub) and [Capacity Timeline Planner](https://github.com/mihaelaven/capacity-timeline-planner). Use their setup guides and testing records for app-specific exercises.
 
 ## Content guidelines
 
@@ -65,3 +59,4 @@ For a connected test, supply a test News Desk artifact and verify both an `items
 Weekly shipped digest: empty issue list; two projects; more than 100 issues; API failure; repeat execution. The local formatter checks cover the first two only.
 
 Feedback triage: bug, duplicate bug, feature request, noise, unknown client; authenticated approval, rejection, dry run, unauthorized reviewer, and two-day timeout; a legacy or copied approval link; a repeated Slack message. Confirm writes occur only for the intended approved proposal. These are manual integration acceptance cases, not claims of completed tests.
+

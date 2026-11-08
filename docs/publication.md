@@ -1,15 +1,25 @@
-# Clean publication
+# Publication and privacy
 
-The publication target is a new repository, `pm-toolkit-public`. The original `pm-toolkit` stays private with its existing history intact.
+This repository is the public copy of PM Toolkit. It contains six skills, two reporting agents, two workflow examples and fictional test data. The original research archive stays private.
 
-The public candidate contains only the current reviewed toolkit files, with a new initial history. It must not import the old repository's `.git` folder, branches, tags, issues, commit ancestry or removed competitor-monitor files. Do not push the old repository's refs into the new one.
+The apps live in their own public repositories, linked from the [main README](../README.md#standalone-apps). Their setup and testing notes live with each app.
 
-## Release gate
+## Release checks
 
-1. Run the local tests and documentation checks in validation.md.
-2. Check the entire publication file list for secrets, personal details, local paths, internal URLs and customer records, including screenshots.
-3. Verify the new repository's history contains only the intended clean initial snapshot and later reviewed changes.
-4. Complete or explicitly defer the connected checks in integration-checklist.md. Keep experimental capability labels until connected behaviour has been observed.
-5. Verify the final GitHub visibility only after the publication condition is satisfied.
+- Review the source files, history, branches, issues and release files.
+- Run the [local tests and link checks](validation.md).
+- Use sample data and placeholder configuration in shared files.
+- Record connected tests and deferred tests in the validation guide.
+- Keep the experimental labels visible until the relevant connected checks pass.
 
-The private original is not sanitized by publishing a clean copy. Its history remains private and continues to hold previously removed project material.
+The publication copy uses its own history, starting with a clean snapshot. Each later update receives its own review.
+
+## Keep private data in your own workspace
+
+Keep real interviews, customer records, meeting notes and internal documents in a private location. Store API keys and signing secrets in your host's credential manager. Keep private workspace URLs, reviewer identities and test responses in a private test log.
+
+The bundled brand example uses a sample identity. Keep a personal brand playbook private when it contains an editorial strategy you wish to protect.
+
+## Try connected features
+
+Start with fictional data and disposable destinations. Review source links, dates, owners and exact proposed writes. Follow the [connected checklist](integration-checklist.md) before routine use.

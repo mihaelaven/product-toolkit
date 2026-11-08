@@ -30,4 +30,3 @@ When the user asks for a check, go through the guideline section by section and 
 ## 4. Keep the guideline current
 
 When the user approves a new pattern or rejects a recurring choice, offer to add it to the guideline as a rule, so the next draft starts from it.
-

@@ -1,7 +1,16 @@
 {
   "name": "pm-toolkit",
-  "version": "0.1.0",
-  "description": "Skills, agents and small apps for product managers: PRDs, decision log, feature request triage, client validation analysis, Linear issue creation, call task hub, capacity planning, scope drift checks and a daily PM news digest.",
-  "keywords": ["product-management", "prd", "customer-research", "decision-log", "linear", "agents"]
+  "version": "0.2.0",
+  "description": "Six product-management skills, two reporting agents and two experimental n8n workflow examples. Covers PRDs, customer evidence, request triage, Linear issues, decision logs and product copy.",
+  "keywords": [
+    "product-management",
+    "prd",
+    "customer-research",
+    "decision-log",
+    "linear",
+    "agents"
+  ],
+  "author": {
+    "name": "mihaelaven"
+  }
 }
-

@@ -1,31 +1,23 @@
-# Repository boundaries
+# Repository structure
 
-Keep PM Toolkit as one repository while its components serve the same PM audience and evolve together.
-
-| Folder | Responsibility |
+| Folder | Contents |
 |---|---|
-| `skills/` | Reusable task instructions |
-| `agents/` | Specialist definitions, with run and scheduling guidance |
-| `apps/` | Companion interfaces, with a README for each |
-| `workflows/` | Importable n8n examples and setup |
-| `examples/` | Fictional inputs, expected outputs, and evaluation guidance |
-| `tests/` | Local regression and workflow-structure checks |
-| `scripts/` | Installation and validation helpers |
-| `docs/` | Compatibility, validation, and project decisions |
+| `skills/` | Six reusable PM instruction sets |
+| `agents/` | Two reporting agents and scheduling guidance |
+| `workflows/` | Two n8n examples and their setup guides |
+| `examples/` | Fictional inputs and review criteria |
+| `tests/` | Installer, workflow and approval checks |
+| `scripts/` | Installation and documentation helpers |
+| `docs/` | Setup, validation and publication guidance |
 
-The main README groups these components by the problem they solve, so a reader can find related pieces without following the implementation folders.
+## App ownership
 
-## When to split
+The four apps live in their own public repositories, linked from the [main README](../README.md#standalone-apps). Call Task Hub and Capacity Timeline Planner own their companion skills, HTML, screenshots, fixtures and tests.
 
-Extract a component when it needs its own installation, release cycle, dependencies, or audience, and can be used without the toolkit. Keep a short description and link here rather than maintaining duplicate copies.
+The toolkit keeps the scope-review and news agents because each can produce a useful report in chat. Their optional app connections are documented in the standalone repositories.
 
-- Competitor Delta Monitor already fits this boundary and stays in its own repository.
-- Feedback triage is a possible future extraction once its independent setup and connected execution are validated. Its three workflow files form one system and should move together.
-- Keep each small app with its companion skill or agent for now.
-- Content guidelines remains an optional editorial helper rather than a separate repository.
+## Related tasks
 
-## Known overlap
+Linear task creation supports issue drafting, workspace conventions and duplicate checks. Feature request triage groups demand across sources. The feedback workflow handles one incoming Slack message. Each task has its own inputs and review steps.
 
-Call Task Hub extracts meeting actions; Linear task creation provides a broader issue-drafting process. Use the latter when a handoff needs workspace discovery, duplicate checking, or richer issue types. The Call Task Hub app's demo buttons do not implement that process.
-
-Feature request triage analyses demand across sources and a time window. The feedback workflow handles one incoming Slack message. They are related entry points with different scopes.
+A future extraction of feedback triage should move the orchestrator and both specialist workflows together.
