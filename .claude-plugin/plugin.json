@@ -1,14 +1,13 @@
 {
   "name": "pm-toolkit",
-  "version": "0.2.0",
-  "description": "Six product-management skills, two reporting agents and two experimental n8n workflow examples. Covers PRDs, customer evidence, request triage, Linear issues, decision logs and product copy.",
+  "version": "0.3.0",
+  "description": "Six product-management skills and two experimental n8n workflow examples. Covers PRDs, customer evidence, request triage, Linear issues, decision logs and product copy.",
   "keywords": [
     "product-management",
     "prd",
     "customer-research",
     "decision-log",
-    "linear",
-    "agents"
+    "linear"
   ],
   "author": {
     "name": "mihaelaven"

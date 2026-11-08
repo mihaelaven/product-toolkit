@@ -1,6 +1,6 @@
 # Testing and remaining checks
 
-Toolkit cleanup reviewed on **2026-11-08**. The app code and its six logic tests now belong to the standalone repositories.
+Toolkit cleanup reviewed on **2026-11-09**. The app code and its six logic tests now belong to the standalone repositories.
 
 ## Repeat local checks
 
@@ -37,16 +37,13 @@ Private workspace values and response data stay in private test records.
 
 ## Plugin validation
 
-The local plugin validator passes. The agent guide lives in `docs/agents.md`, keeping the agent folder focused on its two definitions. A marketplace listing icon remains optional. Real session discovery and invocation remain part of the checks below.
+The local plugin validator passes. The plugin loads the six skill guides. A marketplace listing icon remains optional. Real session discovery and invocation remain part of the checks below.
 
 ## Tests still needed
 
 | Component | Next checks |
 |---|---|
 | Six skills | Real Claude Code discovery and invocation, output quality on the fictional examples, connector setup and reviewed saves |
-| Scope-review agent | Complete source comparison, evidence quotes, repeated findings, accepted-status preservation and destination writes |
-| News agent | Publication-window filtering, blocked-source reporting, repeated stories and a complete real-source run |
-| Scheduled agents | Host setup, timezone, first scheduled result and failure handling |
 | Feedback triage | Paid model classification and specialist outputs; real Linear and Notion writes; unauthorized users, timeout, replay and retry behavior |
 | Weekly shipped digest | Import, live Linear query, Slack post, Notion append, timezone and schedule |
 | Larger datasets | Pagination, Notion batching, repeated events, retries and duplicate prevention |
@@ -54,3 +51,4 @@ The local plugin validator passes. The agent guide lives in `docs/agents.md`, ke
 Paid model testing remains deferred. Workflow writes begin in disposable destinations after dry-run checks pass. The templates need deployment-specific verification before routine use.
 
 Use the [connected checklist](integration-checklist.md) to record each pass. App-specific browser and artifact tests are listed in each [standalone app repository](../README.md#standalone-apps).
+

@@ -1,6 +1,6 @@
 # Installation
 
-The toolkit includes six skills, two reporting agents and n8n workflow examples. Use a repository checkout for the examples, tests and workflow exports.
+The toolkit includes six skills and n8n workflow examples. Use a repository checkout for the guides, tests and workflow exports.
 
 ## Install skills
 
@@ -32,17 +32,6 @@ claude --plugin-dir .
 
 For example, invoke `/pm-toolkit:prd`. Connect accounts, import workflows and configure schedules as separate setup steps. See the [plugin documentation](https://code.claude.com/docs/en/plugins).
 
-## Install reporting agents
-
-Check your existing agent files, then copy the selected definitions:
-
-```sh
-mkdir -p ~/.claude/agents
-cp agents/scope-drift-checker.md agents/pm-news-digest.md ~/.claude/agents/
-```
-
-Start a fresh session and ask for the named agent. Follow the [run-once guide](agents.md) before adding a schedule.
-
 ## Use the apps
 
 Download each app from its own repository:
@@ -57,4 +46,5 @@ Call Task Hub and Capacity Timeline Planner include their companion skills. Each
 ## Import n8n workflows
 
 Follow the [workflow setup guides](../workflows/README.md). Add credentials and destination IDs in your own n8n instance. Run manually with fictional data and test destinations, then review the result before activating a trigger.
+
 

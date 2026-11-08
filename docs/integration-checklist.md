@@ -29,16 +29,9 @@ Before enabling the event trigger, test create issue, comment on duplicate issue
 
 Use a test Slack channel and Notion page. Run empty and populated weeks; compare every output identifier with Linear. Check workflow timezone and schedule, API errors, and repeated execution. More than 100 issues or a large Notion block set needs pagination/batching before use at that scale.
 
-## Reporting agents
-
-- Run the scope-review agent using the fictional input in its **Try it in chat** section. Compare source quotes and suggested edits. For a connected Notion test, run twice and confirm that accepted findings preserve their status.
-- Run the news agent against reachable public sources and a deliberately blocked source. Check dates, coverage and repeat-story handling.
-- For scheduled runs, verify source access, timezone, the displayed next run, the first output and failure reporting in the actual host.
-
-Artifact store and app connections belong to the public [Drift Tracker](https://github.com/mihaelaven/drift-tracker) and [PM News Desk](https://github.com/mihaelaven/pm-news-desk) testing records.
-
 ## Recording a pass
 
 Record the date, host/version, scenario, expected result and actual result in a private test log. Keep credentials, personal responder details and private workspace URLs out of public commits. Update the public validation table with scenario outcomes only after they have been observed.
+
 
 

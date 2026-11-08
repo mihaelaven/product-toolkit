@@ -1,6 +1,6 @@
 # Publication and privacy
 
-This repository is the public copy of PM Toolkit. It contains six skills, two reporting agents, two workflow examples and fictional test data. The original research archive stays private.
+This repository is the public copy of PM Toolkit. It contains six skills, two workflow examples and fictional test data. The original research archive stays private.
 
 The apps live in their own public repositories, linked from the [main README](../README.md#standalone-apps). Their setup and testing notes live with each app.
 
@@ -23,3 +23,4 @@ The bundled brand example uses a sample identity. Keep a personal brand playbook
 ## Try connected features
 
 Start with fictional data and disposable destinations. Review source links, dates, owners and exact proposed writes. Follow the [connected checklist](integration-checklist.md) before routine use.
+
