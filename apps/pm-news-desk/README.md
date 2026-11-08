@@ -1,7 +1,5 @@
 # PM News Desk
 
-![PM News Desk browser preview](../../docs/images/pm-news-desk.png)
-
 
 **Browser:** store-unavailable state. **Claude artifact:** database-backed news reader. **Live content:** requires the news agent to populate the same artifact store; not verified end to end.
 
