@@ -43,3 +43,9 @@ Revisit when: a date or a trigger (a metric threshold, a contract renewal, a lau
 ## Sources
 
 Decisions often surface in meeting transcripts, Slack threads and Linear issues. When the user points to one, read it through their connector, pick out the decisions, and offer each as a draft entry.
+
+## Try it
+
+Ask: “Draft a decision entry: on November 6, Maya chose CSV export first because two clients need it for the weekly close. PDF moves to a later release. Revisit after the first five exports. Show the entry here for review.”
+
+Look for the owner, context, options, rationale and revisit trigger. Approve the entry before saving. A later change should preserve the earlier entry and link both decisions.

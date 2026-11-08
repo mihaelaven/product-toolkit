@@ -30,3 +30,9 @@ When the user asks for a check, go through the guideline section by section and 
 ## 4. Keep the guideline current
 
 When the user approves a new pattern or rejects a recurring choice, offer to add it to the guideline as a rule, so the next draft starts from it.
+
+## Try it
+
+Ask: “Write a short release note in a direct, calm voice. Users can export the current filtered report as CSV from the Reports menu. Mention CSV and Reports, and describe the feature using those facts.”
+
+Look for clear wording about the actual feature and the supplied menu name. Use the bundled brand guide as a structural reference when creating a custom guideline.

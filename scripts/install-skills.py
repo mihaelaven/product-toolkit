@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Install selected PM skills with their bundled examples."""
+"""Install selected PM skills with their guides and reference files."""
 import argparse
 from pathlib import Path
 import shutil
@@ -46,4 +46,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 

@@ -81,3 +81,9 @@ Blocked: <source> (<reason>), ...
 - Say which sources were blocked, in the run record and the report. Never cover a blocked source with remembered or invented content.
 - Write plainly: short sentences, no em dashes, no hype.
 - Write to the digest store named in your instructions and nowhere else. Send no messages.
+
+## Try it in chat
+
+Ask: “Use the pm-news-digest agent for the 24 hours ending when this run starts. Sources: https://www.anthropic.com/news and https://openai.com/news/. Return the digest in this conversation. List source access problems and retain stories whose publication dates fit the window.”
+
+Look for dated article links, clear source coverage and summaries supported by the opened pages. A zero-story digest is valid when the available sources yield zero qualifying items. Store and scheduled-run checks are described in the connected acceptance checklist.

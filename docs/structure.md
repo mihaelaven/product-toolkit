@@ -5,7 +5,6 @@
 | `skills/` | Six reusable PM instruction sets |
 | `agents/` | Two reporting agents and scheduling guidance |
 | `workflows/` | Two n8n examples and their setup guides |
-| `examples/` | Fictional inputs and review criteria |
 | `tests/` | Installer, workflow and approval checks |
 | `scripts/` | Installation and documentation helpers |
 | `docs/` | Setup, validation and publication guidance |
@@ -21,3 +20,8 @@ The toolkit keeps the scope-review and news agents because each can produce a us
 Linear task creation supports issue drafting, workspace conventions and duplicate checks. Feature request triage groups demand across sources. The feedback workflow handles one incoming Slack message. Each task has its own inputs and review steps.
 
 A future extraction of feedback triage should move the orchestrator and both specialist workflows together.
+
+
+## Usage examples
+
+Each skill and agent guide includes a short **Try it** example. The content-guidelines skill also includes a sample brand reference.

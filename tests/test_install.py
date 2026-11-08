@@ -13,7 +13,7 @@ class InstallTests(unittest.TestCase):
         return subprocess.run([sys.executable, str(SCRIPT), '--destination', str(destination), *args],
                               capture_output=True, text=True)
 
-    def test_all_skills_keep_examples(self):
+    def test_all_skills_keep_guides_and_references(self):
         with tempfile.TemporaryDirectory() as temp:
             dest = Path(temp)
             result = self.run_installer(dest, '--all')
@@ -22,6 +22,9 @@ class InstallTests(unittest.TestCase):
             self.assertEqual({p.parent.name for p in dest.glob('*/SKILL.md')}, {
                 'prd', 'client-validation-analysis', 'feature-request-triage',
                 'linear-task-creation', 'pm-vault', 'content-guidelines'})
+            for guide in dest.glob('*/SKILL.md'):
+                self.assertEqual(guide.read_bytes(), (ROOT/'skills'/guide.parent.name/'SKILL.md').read_bytes())
+                self.assertIn('## Try it', guide.read_text())
             self.assertTrue((dest/'content-guidelines/examples/example-brand.md').is_file())
             self.assertFalse((dest/'README.md').exists())
 
@@ -46,4 +49,5 @@ class InstallTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
 

@@ -48,7 +48,7 @@ Each app has its own setup guide, limitations and testing record. The toolkit's 
 
 ## Review before use
 
-Start with [fictional examples](examples/README.md). Check source quotes, owners, dates and proposed destinations. Use a test workspace for connected writes.
+Start with the **Try it** example in each skill or agent guide. Check source quotes, owners, dates and proposed destinations. Use a test workspace for connected writes.
 
 - [Testing and remaining checks](docs/validation.md)
 - [Connected acceptance checklist](docs/integration-checklist.md)
@@ -59,4 +59,5 @@ Start with [fictional examples](examples/README.md). Check source quotes, owners
 This public release contains reusable templates and fictional examples. The original research archive stays private. See the publication guide for the review process.
 
 MIT license. Keep evidence attached to recommendations and review external actions before approving them.
+
 

@@ -57,3 +57,9 @@ Also list clusters to decline or park, with the reason, and single-client reques
 ## 6. Hand off, on request
 
 Offer to create Linear issues or a project for the recommended clusters, linking every source request, and to draft Slack replies telling clients their request is tracked. Show each draft and create or send it after the user confirms.
+
+## Try it
+
+Ask: “Northstar requested CSV export twice this month. River requested scheduled CSV email once. Both need report data in finance tools. Northstar needs it for the weekly close. Use these pasted requests and equal client weights. Return a draft recommendation in chat.”
+
+Look for one underlying need, two distinct clients and an urgency note for Northstar. Both Northstar messages represent the same client. Keep effort estimates as questions for engineering and external handoffs as drafts for review.

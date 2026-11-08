@@ -20,7 +20,7 @@ For a project-local installation:
 python3 scripts/install-skills.py --all --destination .claude/skills
 ```
 
-Each skill keeps its bundled examples. Start a fresh Claude Code session and ask for the skill by name.
+Each installed skill includes its usage example. The content-guidelines skill also keeps its sample brand reference. Start a fresh Claude Code session and ask for the skill by name.
 
 ## Load the plugin for one session
 
@@ -57,3 +57,4 @@ Call Task Hub and Capacity Timeline Planner include their companion skills. Each
 ## Import n8n workflows
 
 Follow the [workflow setup guides](../workflows/README.md). Add credentials and destination IDs in your own n8n instance. Run manually with fictional data and test destinations, then review the result before activating a trigger.
+

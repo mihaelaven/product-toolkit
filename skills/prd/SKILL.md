@@ -80,3 +80,9 @@ End with the three changes that would most improve the document.
 ## 5. Where to save it
 
 Save to the place the user names. With a Notion or Linear connector available, offer to create the PRD there and link it to the related project.
+
+## Try it
+
+Ask: “Write a one-page brief for CSV export. Three finance interviews suggest that Friday reconciliation takes 30 minutes. Explore a way to reduce it to 10 minutes. Owner: Maya.”
+
+Look for a clear problem, the supplied evidence, a small experiment and a measurable outcome. The draft should turn open scope and timing details into questions or labelled assumptions.

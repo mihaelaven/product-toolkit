@@ -58,3 +58,13 @@ Close with:
 ## 4. Save
 
 Offer to save the analysis where the user keeps research. With a Notion connector, create a page and link each finding to its source interview.
+
+## Try it
+
+Hypothesis: “Finance leads spend over two hours a week reconciling exports.”
+
+- Interview A, finance lead: “Last Friday I spent three hours joining CSVs.”
+- Interview B, finance lead: “We automated that last year; it takes ten minutes.”
+- Interview C, designer: “An export button sounds nice.”
+
+Ask for an evidence review. Look for A as supporting evidence, B as opposing evidence and C as a weak signal from another role. The summary should explain the small sample and suggest questions about actual past work.

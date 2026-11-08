@@ -21,6 +21,7 @@ The installer copies six available skills and their examples. Existing installat
 
 ## Examples and separate apps
 
-Try the [fictional examples](../examples/README.md), then review the output against their criteria. Each skill produces an assisted draft that benefits from source and owner review.
+Each skill guide includes a short **Try it** example and a description of the expected result. Each skill produces an assisted draft that benefits from source and owner review.
 
 Call Task Hub and Capacity Timeline Planner include their companion skills in their own public repositories. See the [standalone apps](../README.md#standalone-apps). Content guidelines remains an optional editorial helper.
+

@@ -9,25 +9,9 @@ These are specialist instruction files, not background services. Installing them
 
 ## Install and run once
 
-Follow [installation](installation.md) to load the plugin or copy the two agent files individually. In a fresh Claude Code session, ask:
+Follow [installation](installation.md) to load the plugin or copy the two agent files individually. In a fresh Claude Code session, use the **Try it in chat** example in the [scope-review guide](../agents/scope-drift-checker.md#try-it-in-chat) or the [news guide](../agents/pm-news-digest.md#try-it-in-chat).
 
-```text
-Use the scope-drift-checker agent.
-Scope: the local file examples/scope.md.
-Meeting notes: examples/meeting.md.
-Since: 2026-11-01.
-Report destination: return the report in this conversation.
-Do not write to external tools or a findings database.
-```
-
-The [example files](../examples/README.md) are fictional. Check the exact source quotes and the proposed edit. For the news agent, run:
-
-```text
-Use the pm-news-digest agent for the last 24 hours.
-Sources: https://www.anthropic.com/news and https://openai.com/news/.
-Return the report here; no digest store.
-List blocked sources and retain only items whose publication window you can verify.
-```
+Each guide includes a prompt and the result to look for. Review source quotes, dates and proposed edits before choosing an external destination.
 
 Web access is required for news. An empty report is valid. Skills, tools, and authentication vary by host; verify source access in the same environment that will run the schedule.
 
@@ -49,4 +33,5 @@ For a session-only trial, after loading the agent and setting its inputs:
 The app integration is a separate step: [Drift Tracker](https://github.com/mihaelaven/drift-tracker) needs a findings database and artifact Notion tools; [PM News Desk](https://github.com/mihaelaven/pm-news-desk) needs a runner with `ArtifactData` access to its store. Scheduling in Claude Code alone does not grant these capabilities.
 
 Scheduled runs and connected agent-to-app handoffs have not been exercised in this repository's validation record.
+
 

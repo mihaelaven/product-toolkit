@@ -74,3 +74,22 @@ Otherwise add a new row with Status New and First seen and Last seen set to toda
 - Quote sources exactly and link each one.
 - Suggest changes only. A person accepts each change before anyone edits the scope.
 - Deliver the report to the destination named in your instructions, and findings to the findings database when one is named. Send nothing anywhere else.
+
+## Try it in chat
+
+Use this fictional input:
+
+```text
+Scope, agreed November 1, owner Maya:
+MVP format: CSV. Later release: PDF. Launch: November 20.
+
+Meeting, November 4:
+Maya: We decided to include PDF export in the MVP.
+Sam: I will estimate the PDF work by Friday.
+Maya: The launch date stays November 20.
+
+Compare the scope with these meeting decisions.
+Return the report in this conversation.
+```
+
+Look for one scope change: PDF moved into the MVP. The finding should quote the scope and meeting, suggest the exact edit and leave acceptance to the owner. Treat the repeated launch date as confirmation of the existing plan.
