@@ -26,8 +26,8 @@ This repository contains **six skills, two reporting agents and two n8n workflow
 Use Python 3.9 or newer and a compatible Claude Code installation:
 
 ```sh
-git clone https://github.com/mihaelaven/pm-toolkit-public.git
-cd pm-toolkit-public
+git clone https://github.com/mihaelaven/product-toolkit.git
+cd product-toolkit
 python3 scripts/install-skills.py prd
 ```
 
